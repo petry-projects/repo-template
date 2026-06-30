@@ -1,7 +1,7 @@
 # Bootstrap a new repo from this template
 
 This template ships the org baseline: the thin-caller workflow stubs (pinned to
-their published `@<name>/v<MAJOR>-stable` channel tags) and the root/baseline files. Most
+their published `@<name>/stable` channel tags) and the root/baseline files. Most
 of it works out of the box. Two things are **per-stack** and must be picked once,
 after you create your repo from the template:
 
@@ -44,23 +44,6 @@ Two onboarding questions are resolved here so they are not left implicit:
   org admin. The bootstrap only *disables those apps' check-suite auto-trigger* on
   the new repo (so queued-but-never-completed suites never block auto-merge),
   assuming the apps are already installed org-wide.
-
-- **Advisory review bots (Gemini Code Assist, Codex) need per-repo enablement on
-  their vendor consoles — the GitHub org App install is not enough.** These bots
-  keep their own list of repos to review, separate from the GitHub App grant, so a
-  brand-new repo is silent until it is added there. Without this, the pr-review
-  advisory gate can wait indefinitely for reviews that never arrive.
-    - **Gemini Code Assist:** in **Google Cloud → Developer Connect**
-      (project `code-assist-<org>`, region `us-east1`), open the org's GitHub
-      connection and **Link Repositories** for the new repo. The org GitHub App is
-      `repository_selection: all` and does *not* by itself make Gemini review a new
-      repo — Developer Connect is the gate.
-    - **Codex (`chatgpt-codex-connector`):** enable code review for the new repo in
-      the ChatGPT/OpenAI Codex connector settings.
-    - **Verify:** open a throwaway PR and comment `/gemini review`; a
-      `gemini-code-assist[bot]` review should post within a few minutes (compare
-      against an established repo). CodeRabbit and SonarCloud work org-wide and
-      need no per-repo step.
 
 ---
 
