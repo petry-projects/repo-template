@@ -21,10 +21,41 @@ for your language and toolchain. (The single-template default keeps one `ci.yml`
 that you tailor; per-stack `ci.yml` variants remain an advisory open question and
 are not required to start.)
 
-## 3. Set your Sonar project key
+## 3. Set up the SonarCloud project
 
-If you enable the `sonarcloud` workflow, set `sonar.projectKey` /
-`sonar.organization` in `sonar-project.properties` to match your repo.
+The `sonarcloud` workflow is guarded on `SONAR_TOKEN`, so it is a green no-op
+until the token is present. Once the org-wide `SONAR_TOKEN` is visible to the
+repo, the scan runs — and it will **fail** (`Could not find the project` /
+`...pullrequest`) until the SonarCloud project actually exists. Provision it:
+
+1. **Match the keys in `sonar-project.properties`** to your repo:
+   ```
+   sonar.projectKey=petry-projects_<repo-name>
+   sonar.organization=petry-projects
+   ```
+   (`sonar.sources` / `sonar.tests` / language settings are per-stack.)
+
+2. **Import the project in SonarCloud.** In <https://sonarcloud.io>, open the
+   **petry-projects** organization → **Analyze new project** → select the repo.
+   Confirm the generated project key equals `petry-projects_<repo-name>`.
+
+3. **Use CI-based analysis, not Automatic Analysis.** The `sonarcloud` workflow
+   runs the scanner itself, which conflicts with SonarCloud's Automatic Analysis.
+   In the project's **Administration → Analysis Method**, turn **Automatic
+   Analysis OFF** (CI-based). Leaving both on causes "you can't analyze with both"
+   errors.
+
+4. **Confirm `SONAR_TOKEN` is available to the repo.** It is provided org-wide;
+   if a repo can't see it, add a repo secret `SONAR_TOKEN` (a SonarCloud token
+   from **My Account → Security**).
+
+5. **Set the New Code definition / quality gate** for the project (org default
+   is fine for most repos).
+
+6. **Re-run** the `SonarCloud` job (push, or re-run the workflow). The required
+   `SonarCloud` status check should now pass. Until this is done, `SonarCloud` is
+   a required check that fails for non-admins (org-admins bypass via the
+   `code-quality` ruleset).
 
 ---
 
