@@ -10,10 +10,16 @@
 #   3. The job name `build-and-test` is the required CI status check. Keep it — or,
 #      if you split into per-language jobs (e.g. TypeScript, Go, Python), update the
 #      repo's branch-protection required checks to match the new job names.
+<<<<<<< HEAD
 #   4. Two more jobs ship by default and are org required checks — `Secret scan
 #      (gitleaks)` (per push-protection.md; needs a .gitleaks.toml at root, seeded
 #      by repo-template tooling) and `coverage` (green until your stack emits coverage).
 #      Keep their job names stable so the required checks stay satisfied.
+=======
+#   4. The `Secret scan (gitleaks)` job is an org required check (per
+#      push-protection.md); it needs a .gitleaks.toml at the repo root. Keep its
+#      job name stable so the required check stays satisfied.
+>>>>>>> f3fb610 (feat: implement issue #19 — Compliance: secret_scan_ci_job_present (#23))
 #
 # CONVENTIONS (enforced by the standard):
 #   • permissions: {} at top, least-privilege per job (CI needs contents: read)
@@ -55,6 +61,13 @@ jobs:
       # placeholder below keeps the required `build-and-test` check green.
       - name: Placeholder — replace with real build/test steps
         run: echo "CI stub — add your stack's lint/format/typecheck/test/coverage steps; see BOOTSTRAP.md."
+
+
+      - name: Install bats
+        run: sudo apt-get install -y bats
+
+      - name: Run compliance regression tests
+        run: bats tests/ci-secret-scan.bats
 
   # Canonical secret-scan job — copied verbatim from push-protection.md#required-ci-job.
   # Produces the `Secret scan (gitleaks)` required check. Uses the gitleaks CLI (not
