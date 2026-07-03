@@ -4,8 +4,8 @@
 
 `repo-template` is the org baseline scaffold for new `petry-projects` repositories:
 click **Use this template** to create a repo pre-wired with the standard workflow
-stubs and baseline files. Its "code" is GitHub Actions workflows, Bash automation
-scripts, and Markdown docs — there is no application runtime. The workflow stubs and
+stubs and baseline files. Its "code" is GitHub Actions workflows and Markdown docs —
+there is no application runtime and no local automation scripts. The workflow stubs and
 baseline files are a distribution artifact of the org standards in
 [`petry-projects/.github`](https://github.com/petry-projects/.github) (`standards/`)
 and are regenerated from there.
@@ -13,11 +13,9 @@ and are regenerated from there.
 ## Tech Stack
 
 - **Runtime:** None — this is a template/scaffold repo, not a deployable application.
-- **Automation:** Bash (POSIX-ish, `bash` shebangs, `set -euo pipefail`) under `.dev-lead/scripts/`.
-- **CI / config:** GitHub Actions workflows (YAML) under `.github/workflows/`; Dependabot; SonarCloud.
+- **CI / config:** GitHub Actions workflow stubs (YAML) under `.github/workflows/`; Dependabot; SonarCloud.
 - **Docs:** Markdown (`AGENTS.md`, `CLAUDE.md`, `BOOTSTRAP.md`, `README.md`, `SECURITY.md`).
-- **Tooling:** `shellcheck` (lint), `bats` (shell tests), `python3` + PyYAML (agent-profile
-  frontmatter validation), `gh` CLI (workflow automation).
+- **Tooling:** `bats` (compliance regression tests in `tests/`), `gh` CLI (workflow automation via CI).
 
 ## Project Structure
 
@@ -27,9 +25,8 @@ and are regenerated from there.
   copilot-instructions.md   # This file
   CODEOWNERS
   dependabot.yml      # Per-stack — picked once during bootstrap (see BOOTSTRAP.md)
-.dev-lead/
-  scripts/            # Bash automation + orchestration (dev-lead engine, release, rebase, …)
-    lib/              # Shared shell libraries sourced by the scripts above
+tests/
+  ci-secret-scan.bats # Compliance regression guard for the secret-scan CI job
 AGENTS.md             # Points to org-wide standards in petry-projects/.github
 BOOTSTRAP.md          # One-time, per-stack setup steps for repos made from this template
 sonar-project.properties  # SonarCloud project key / sources (customize per repo)
@@ -42,10 +39,11 @@ stubs: they pass out of the box and are tailored to each repo's language after c
 
 There is no install/build/dev-run step — the repo has no application dependencies.
 
-- Lint (all):   `bash .dev-lead/scripts/dev-lead-lint.sh`  ← run before finishing any change
-- ShellCheck:   `shellcheck --severity=warning -x .dev-lead/scripts/**/*.sh`
-- Shell tests:  `bash .dev-lead/scripts/run-bats.sh <test-file.bats> …`
-- Preflight:    `bash .dev-lead/scripts/dev-lead-preflight.sh`
+Validation happens primarily via GitHub Actions in CI. To run the compliance regression tests
+locally:
+
+- Compliance tests: `bats tests/ci-secret-scan.bats`  ← requires `bats` installed locally
+- Workflow YAML validation: push to a branch and let CI run, or use `act` locally.
 
 ## Required Environment Variables
 
@@ -55,12 +53,19 @@ No application secrets are needed for local work. In CI:
   green no-op until it is present. Never commit a real token.
 - `GITHUB_TOKEN`: provided automatically by GitHub Actions; used by `gh` in the automation
   workflows. Do not hard-code personal access tokens.
+- `CLAUDE_CODE_OAUTH_TOKEN`: required by `dev-lead.yml` to run the dev-lead agent. Set as an
+  org or repo secret.
+- `APP_ID` / `APP_PRIVATE_KEY`: GitHub App credentials required by `dependabot-automerge.yml`
+  (contents:write and pull-requests:write). Set as org secrets.
+- `GH_PAT_WORKFLOWS`: required by `pr-review-mention.yml` to dispatch PR review automation.
+  Set as an org secret.
 
 ## Testing Framework
 
-- Runner: `bats` for Bash scripts, invoked via `.dev-lead/scripts/run-bats.sh` (resilient
-  wrapper that skips missing test files and fails only on real test failures).
-- Static analysis: `shellcheck` at `--severity=warning` with `-x` (follow sourced files).
+- Compliance tests: `bats` for CI regression guards in `tests/` (run via `bats tests/*.bats`).
+  These verify that workflow stubs carry required jobs/steps (e.g. the secret-scan job in `ci.yml`).
+- CI validation: GitHub Actions workflows are the primary verification mechanism — push to a
+  branch and let the CI suite run. SonarCloud guards code quality (gated by `SONAR_TOKEN`).
 - No coverage threshold applies — there is no application code to cover.
 
 ## Repo-Specific Overrides
