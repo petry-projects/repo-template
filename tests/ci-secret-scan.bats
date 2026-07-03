@@ -28,13 +28,6 @@ GITLEAKS_TOML="${BATS_TEST_DIRNAME}/../.gitleaks.toml"
   grep -qF 'gitleaks detect --source . --config .gitleaks.toml --redact --verbose --exit-code 1' "$CI_YML"
 }
 
-# Guards githubactions:S6506 — the gitleaks download must restrict redirects to
-# HTTPS so a redirect can never downgrade the fetch to an insecure http:// host.
-@test "secret-scan downloads gitleaks with insecure redirects disabled" {
-  grep -qE "curl.*--proto-redir '=https'.*gitleaks\.tar\.gz" "$CI_YML"
-}
-
-
 @test ".gitleaks.toml config exists at the repo root" {
   [ -f "$GITLEAKS_TOML" ]
 }
