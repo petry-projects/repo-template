@@ -51,4 +51,5 @@ jobs:
       contents: write      # update-branch via GITHUB_TOKEN (may touch .github/workflows/)
       pull-requests: write # post comments on PRs
     uses: petry-projects/.github/.github/workflows/auto-rebase-reusable.yml@auto-rebase/stable  # NOSONAR(githubactions:S7637) first-party channel ref
-    secrets: inherit
+    # No `secrets:` block — the reusable authenticates with the auto-provided
+    # GITHUB_TOKEN only, so nothing needs forwarding (githubactions:S7635).

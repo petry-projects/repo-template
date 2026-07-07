@@ -38,4 +38,7 @@ jobs:
     permissions:
       pull-requests: write
     uses: petry-projects/.github/.github/workflows/pr-review-mention-reusable.yml@pr-review-mention/stable  # NOSONAR(githubactions:S7637) first-party channel ref
-    secrets: inherit
+    # Enumerate only the secret the reusable consumes (githubactions:S7635 —
+    # do not revert to `secrets: inherit`).
+    secrets:
+      GH_PAT_WORKFLOWS: ${{ secrets.GH_PAT_WORKFLOWS }}
