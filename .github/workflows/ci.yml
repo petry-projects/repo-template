@@ -80,7 +80,7 @@ jobs:
         run: |
           tarball="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
           url="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/${tarball}"
-          curl -fsSL --proto '=https' --proto-redir -all,https "${url}" -o /tmp/gitleaks.tar.gz
+          wget -q "${url}" -O /tmp/gitleaks.tar.gz
           echo "${GITLEAKS_CHECKSUM}  /tmp/gitleaks.tar.gz" | sha256sum -c
           tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
           sudo mv /tmp/gitleaks /usr/local/bin
@@ -96,7 +96,7 @@ jobs:
   # block below (keep the job id and `name:` as `coverage` so the required check is stable).
   coverage:
     name: coverage
-    runs-on: ubuntu-22.04  # kcov dropped from Ubuntu 24.04 apt; pin until kcov ships a 24.04-compatible package
+    runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:
