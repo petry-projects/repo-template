@@ -14,11 +14,3 @@ coverage/
 *.log
 .env
 .env.*
-
-# Secrets / keys
-# Baseline key material — see petry-projects/.github/.gitignore §4 (SSH/TLS/GPG).
-# *.pem / *.key have high false-positive rates (test fixtures, dev certs); re-allow
-# specific legitimate files with a negated path (e.g. !test/fixtures/localhost.pem),
-# never by un-ignoring a whole directory.
-*.pem
-*.key
