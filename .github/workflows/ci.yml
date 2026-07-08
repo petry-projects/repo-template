@@ -96,7 +96,7 @@ jobs:
   # block below (keep the job id and `name:` as `coverage` so the required check is stable).
   coverage:
     name: coverage
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04  # kcov dropped from Ubuntu 24.04 apt; pin until kcov ships a 24.04-compatible package
     permissions:
       contents: read
     steps:
