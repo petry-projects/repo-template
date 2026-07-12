@@ -77,6 +77,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Install gitleaks
         env:
@@ -105,7 +106,7 @@ jobs:
   # block below (keep the job id and `name:` as `coverage` so the required check is stable).
   coverage:
     name: coverage
-    runs-on: ubuntu-22.04  # kcov dropped from Ubuntu 24.04 apt; pin until kcov ships a 24.04-compatible package
+    runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:
