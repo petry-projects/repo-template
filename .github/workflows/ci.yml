@@ -112,17 +112,10 @@ jobs:
             exit 0
           fi
           sudo apt-get update -qq
-          sudo apt-get install -y -qq bats
-          # kcov was removed from Ubuntu 24.04 apt repos; attempt install then fall back
-          # to running bats directly so tests still gate the check even without instrumentation.
-          if sudo apt-get install -y -qq kcov 2>/dev/null; then
-            mkdir -p coverage
-            kcov --include-path=. --exclude-path=tests,coverage coverage bats "${bats_files[@]}"
-            echo "Coverage report written to ./coverage"
-          else
-            echo "kcov not available via apt — running bats directly (no coverage instrumentation)."
-            bats "${bats_files[@]}"
-          fi
+          sudo apt-get install -y -qq bats kcov
+          mkdir -p coverage
+          kcov --include-path=. --exclude-path=tests,coverage coverage bats "${bats_files[@]}"
+          echo "Coverage report written to ./coverage"
 
       # ── Per-stack expansion — replace/augment the shell block above for your stack.
       #    Keep the job id and `name:` as `coverage` so the required check is unchanged.
