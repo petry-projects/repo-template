@@ -14,7 +14,3 @@ coverage/
 *.log
 .env
 .env.*
-
-# Private keys / certificates — prevent accidental commit of TLS/SSH/GPG material
-*.pem
-*.key
