@@ -124,13 +124,8 @@ jobs:
           echo "${KCOV_CHECKSUM}  /tmp/kcov-amd64.tar.gz" | sha256sum -c
           sudo tar -xzf /tmp/kcov-amd64.tar.gz -C /
           mkdir -p coverage
-          if sudo apt-get install -y -qq kcov; then
-            kcov --include-path=. --exclude-path=tests,coverage coverage bats "${bats_files[@]}"
-            echo "Coverage report written to ./coverage"
-          else
-            echo "::warning::kcov unavailable on this runner — running bats tests without coverage instrumentation."
-            bats "${bats_files[@]}"
-          fi
+          kcov --include-path=. --exclude-path=tests,coverage coverage bats "${bats_files[@]}"
+          echo "Coverage report written to ./coverage"
 
       # ── Per-stack expansion — replace/augment the shell block above for your stack.
       #    Keep the job id and `name:` as `coverage` so the required check is unchanged.
