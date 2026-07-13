@@ -43,9 +43,7 @@ jobs:
       contents: read
     steps:
       - name: Checkout repository
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        with:
-          persist-credentials: false
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       # ── Replace the step below with your stack's checks ───────────────────────
       # Standard CI stages: lint, format check, type check, unit tests, coverage
@@ -71,10 +69,9 @@ jobs:
       contents: read
     steps:
       - name: Checkout (full history)
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
-          persist-credentials: false
 
       - name: Install gitleaks
         env:
@@ -85,7 +82,7 @@ jobs:
         run: |
           tarball="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
           url="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/${tarball}"
-          curl --proto '=https' --proto-redir '=https' --tlsv1.2 -sSfL "${url}" -o /tmp/gitleaks.tar.gz
+          curl -fsSL --proto '=https' --tlsv1.2 "${url}" -o /tmp/gitleaks.tar.gz
           echo "${GITLEAKS_CHECKSUM}  /tmp/gitleaks.tar.gz" | sha256sum -c
           tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
           sudo mv /tmp/gitleaks /usr/local/bin
@@ -106,9 +103,7 @@ jobs:
       contents: read
     steps:
       - name: Checkout repository
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-        with:
-          persist-credentials: false
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Coverage (shell/bats via kcov)
         run: |
