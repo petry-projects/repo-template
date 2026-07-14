@@ -1,0 +1,76 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# CodeQL — static application security testing (SAST).
+#
+# WHY THIS FILE EXISTS:
+#   The org runs CodeQL via "default setup" (a repository SETTING, toggled in
+#   Settings ▸ Code security ▸ Code scanning), which cannot be templated — a repo
+#   created from petry-projects/repo-template starts with it OFF. Until a human
+#   flips default setup on, OpenSSF Scorecard reports "SAST 0/10 — no SAST tool
+#   detected". This committed advanced-setup workflow gives a fresh repo detectable
+#   SAST on day 0. If you later enable default setup, delete this file (the two
+#   cannot both run for the same language).
+#
+# CUSTOMIZE-PER-STACK:
+#   Trim the `language` matrix below to just the languages your repo actually
+#   contains. Values: actions, c-cpp, csharp, go, java-kotlin, javascript-typescript,
+#   python, ruby, rust, swift. Compiled languages (c-cpp, csharp, go, java-kotlin,
+#   swift) also need a build — uncomment the autobuild step, or add manual build
+#   commands. The defaults (actions + javascript-typescript) suit JS/TS-leaning
+#   template repos and need no build.
+#
+# CONVENTIONS (per the org CI standard):
+#   • permissions: {} at top, least-privilege per job
+#   • SHA-pin every third-party action (never a tag/branch)
+# ─────────────────────────────────────────────────────────────────────────────
+name: CodeQL
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Weekly, to catch advisories published after the last push.
+    - cron: "27 3 * * 1"
+
+permissions: {}
+
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    permissions:
+      # Minimum for CodeQL advanced setup:
+      contents: read           # check out the code
+      security-events: write   # upload SARIF results to code scanning
+      actions: read            # read workflow run metadata (private repos)
+    strategy:
+      fail-fast: false
+      matrix:
+        # Trim to the languages this repo actually contains (see header).
+        language: [actions, javascript-typescript]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@99df26d4f13ea111d4ec1a7dddef6063f76b97e9 # v4.37.0
+        with:
+          languages: ${{ matrix.language }}
+          queries: security-extended
+
+      # ── Compiled languages only ───────────────────────────────────────────────
+      # For c-cpp / csharp / go / java-kotlin / swift, uncomment autobuild (or
+      # replace it with your own build commands). Interpreted languages (actions,
+      # javascript-typescript, python, ruby) need no build step.
+      # - name: Autobuild
+      #   uses: github/codeql-action/autobuild@99df26d4f13ea111d4ec1a7dddef6063f76b97e9 # v4.37.0
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@99df26d4f13ea111d4ec1a7dddef6063f76b97e9 # v4.37.0
+        with:
+          category: "/language:${{ matrix.language }}"
