@@ -15,8 +15,8 @@
 #   contains. Values: actions, c-cpp, csharp, go, java-kotlin, javascript-typescript,
 #   python, ruby, rust, swift. Compiled languages (c-cpp, csharp, go, java-kotlin,
 #   swift) also need a build — uncomment the autobuild step, or add manual build
-#   commands. The defaults (actions + javascript-typescript) suit JS/TS-leaning
-#   template repos and need no build.
+#   commands. The default (actions) suits workflow-only repos and needs no build;
+#   add javascript-typescript for JS/TS projects (also no build needed).
 #
 # CONVENTIONS (per the org CI standard):
 #   • permissions: {} at top, least-privilege per job
@@ -52,7 +52,7 @@ jobs:
       fail-fast: false
       matrix:
         # Trim to the languages this repo actually contains (see header).
-        language: [actions, javascript-typescript]
+        language: [actions]
     steps:
       - name: Checkout repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
