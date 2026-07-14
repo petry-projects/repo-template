@@ -1,4 +1,7 @@
 # ─────────────────────────────────────────────────────────────────────────────
+# SOURCE OF TRUTH: petry-projects/.github/standards/workflows/codeql.yml
+# Standard:        petry-projects/.github/standards/ci-standards.md
+#
 # CodeQL — static application security testing (SAST).
 #
 # WHY THIS FILE EXISTS:
