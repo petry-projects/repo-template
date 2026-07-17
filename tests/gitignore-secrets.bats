@@ -5,18 +5,24 @@
 
 GITIGNORE="${BATS_TEST_DIRNAME}/../.gitignore"
 
+# Normalize line endings (handles both LF and CRLF) for cross-platform compatibility.
+has_entry() {
+  local pattern="$1"
+  tr -d '\r' < "$GITIGNORE" | grep -qE "$pattern"
+}
+
 @test ".gitignore exists at the repo root" {
   [ -f "$GITIGNORE" ]
 }
 
 @test ".gitignore ignores dotenv files" {
-  grep -qE '^\.env$' "$GITIGNORE"
+  has_entry '^\.env$'
 }
 
 @test ".gitignore ignores PEM key material (*.pem)" {
-  grep -qE '^\*\.pem$' "$GITIGNORE"
+  has_entry '^\*\.pem$'
 }
 
 @test ".gitignore ignores private key files (*.key)" {
-  grep -qE '^\*\.key$' "$GITIGNORE"
+  has_entry '^\*\.key$'
 }
