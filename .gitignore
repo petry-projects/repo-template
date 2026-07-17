@@ -14,3 +14,7 @@ coverage/
 *.log
 .env
 .env.*
+
+# Secrets / keys
+*.pem
+*.key
