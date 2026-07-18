@@ -14,26 +14,61 @@
 # those invariants so drift is caught in CI rather than in production run health.
 
 STUB="${BATS_TEST_DIRNAME}/../.github/workflows/pr-review-mention.yml"
-SEED="${BATS_TEST_DIRNAME}/../.dev-lead/scripts/seed-repo-template.sh"
 
 @test "pr-review-mention stub exists" {
   [ -f "$STUB" ]
 }
 
 @test "pr-review-mention stub is byte-identical to the canonical template" {
-  # seed-repo-template.sh --emit-workflow reproduces the canonical stub content
-  # exactly (same mechanism template_stub_drift.sh uses for byte-identity checks).
-  # Compare raw bytes with cmp — bats' $output normalizes trailing newlines, which
-  # would mask exactly the kind of trailing-newline drift this guard must catch.
-  local canon emit_status
+  # Inline canonical snapshot — update this heredoc whenever the central template
+  # (petry-projects/.github/standards/workflows/pr-review-mention.yml) changes.
+  # Replaces the external seed-repo-template.sh dependency that was not present in
+  # this repo and caused CI to fail with exit 127 on every run.
+  local canon
   canon="$(mktemp)"
-  bash "$SEED" --emit-workflow pr-review-mention.yml > "$canon"
-  emit_status=$?
-  if [ "$emit_status" -ne 0 ]; then
-    rm -f "$canon"
-    echo "seed-repo-template.sh --emit-workflow failed (exit $emit_status)"
-    return 1
-  fi
+  cat > "$canon" << 'CANONICAL'
+# ─────────────────────────────────────────────────────────────────────────────
+# SOURCE OF TRUTH: petry-projects/.github/standards/workflows/pr-review-mention.yml
+# Standard:        petry-projects/.github/standards/ci-standards.md
+# Reusable:        petry-projects/.github/.github/workflows/pr-review-mention-reusable.yml
+#
+# AGENTS — READ BEFORE EDITING:
+#   • This file is a THIN CALLER STUB. All review-dispatch logic lives in the
+#     reusable workflow above.
+#   • You MUST NOT change: the `uses:` ref — it is pinned to the
+#     `pr-review-mention/stable` channel, a moving tag advanced centrally.
+#     Never repoint it to `@main`, a SHA, or a frozen `@vX` (see
+#     ci-standards.md → Reusable workflow versioning). Also do not change the
+#     trigger events or the job-level `permissions:` block — reusable workflows
+#     can be granted no more permissions than the calling job, so removing the
+#     stanza breaks the reusable's gh API calls.
+#   • If you need different behaviour, open a PR against the reusable in the
+#     central repo. A new release is rolled out by moving the channel tag
+#     centrally — never by editing callers, so no fanout PR is needed.
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# PR Review Mention — thin caller for the org-level reusable.
+# To adopt: copy this file to .github/workflows/pr-review-mention.yml in your repo.
+# Requires: GH_PAT_WORKFLOWS org secret (already present in petry-projects org).
+name: PR Review — Mention Trigger
+
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+  pull_request:
+    types: [review_requested]
+
+permissions: {}
+
+jobs:
+  pr-review-mention:
+    permissions:
+      pull-requests: write
+    uses: petry-projects/.github/.github/workflows/pr-review-mention-reusable.yml@pr-review-mention/stable  # NOSONAR(githubactions:S7637) first-party channel ref
+    secrets: inherit
+CANONICAL
   run cmp -- "$canon" "$STUB"
   rm -f "$canon"
   [ "$status" -eq 0 ] || {
@@ -47,21 +82,25 @@ SEED="${BATS_TEST_DIRNAME}/../.dev-lead/scripts/seed-repo-template.sh"
 }
 
 @test "uses: ref is not repointed to @main, a SHA, or a frozen @vN" {
-  ! grep -qE 'pr-review-mention-reusable\.yml@(main|[0-9a-f]{40}|v[0-9])' "$STUB"
+  if grep -qE 'pr-review-mention-reusable\.yml@(main|[0-9a-f]{7,40}|v[0-9]+)' "$STUB"; then
+    echo "Error: The uses: ref in $STUB is pointed to a forbidden ref (main, SHA, or frozen vN)." >&2
+    echo "It must be pinned to the pr-review-mention/stable channel." >&2
+    return 1
+  fi
 }
 
 @test "all three trigger events are present" {
-  grep -qE '^  issue_comment:' "$STUB"
-  grep -qE '^  pull_request_review_comment:' "$STUB"
-  grep -qE '^  pull_request:' "$STUB"
-  grep -qE '^    types: \[review_requested\]' "$STUB"
+  grep -qE '^  issue_comment:' "$STUB" || { echo "Missing issue_comment trigger"; return 1; }
+  grep -qE '^  pull_request_review_comment:' "$STUB" || { echo "Missing pull_request_review_comment trigger"; return 1; }
+  grep -qE '^  pull_request:' "$STUB" || { echo "Missing pull_request trigger"; return 1; }
+  grep -qE '^    types: \[review_requested\]' "$STUB" || { echo "Missing pull_request review_requested type"; return 1; }
 }
 
 @test "top-level permissions are locked down to {}" {
-  grep -qE '^permissions: \{\}' "$STUB"
+  grep -qE '^permissions: \{\}' "$STUB" || { echo "Top-level permissions are not locked down to {}"; return 1; }
 }
 
 @test "job grants exactly pull-requests: write and inherits secrets" {
-  grep -qE '^      pull-requests: write' "$STUB"
-  grep -qF 'secrets: inherit' "$STUB"
+  grep -qE '^      pull-requests: write' "$STUB" || { echo "Missing pull-requests: write permission"; return 1; }
+  grep -qF 'secrets: inherit' "$STUB" || { echo "Missing secrets: inherit"; return 1; }
 }
