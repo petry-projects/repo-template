@@ -40,7 +40,7 @@ STUB="${BATS_TEST_DIRNAME}/../.github/workflows/pr-review-mention.yml"
 #   • This file is a THIN CALLER STUB. All review-dispatch logic lives in the
 #     reusable workflow above.
 #   • You MUST NOT change: the `uses:` ref — it is pinned to the
-#     `pr-review-mention/v2-stable` channel, a moving tag advanced centrally.
+#     `pr-review-mention/stable` channel, a moving tag advanced centrally.
 #     Never repoint it to `@main`, a SHA, or a frozen `@vX` (see
 #     ci-standards.md → Reusable workflow versioning). Also do not change the
 #     trigger events or the job-level `permissions:` block — reusable workflows
@@ -53,11 +53,7 @@ STUB="${BATS_TEST_DIRNAME}/../.github/workflows/pr-review-mention.yml"
 #
 # PR Review Mention — thin caller for the org-level reusable.
 # To adopt: copy this file to .github/workflows/pr-review-mention.yml in your repo.
-# Requires (org secrets, already present in petry-projects org):
-#   GH_PAT_DON_PETRY     canonical PAT for API calls and dispatching the review agent.
-#                        GH_PAT_WORKFLOWS is the deprecated transition alias, kept as the
-#                        `||` fallback until the persona rename lands fleet-wide.
-#   DON_PETRY_BOT_GH_PAT PAT owned by donpetry-bot, for posting acknowledgement comments.
+# Requires: GH_PAT_WORKFLOWS org secret (already present in petry-projects org).
 name: PR Review — Mention Trigger
 
 on:
@@ -74,10 +70,8 @@ jobs:
   pr-review-mention:
     permissions:
       pull-requests: write
-    uses: petry-projects/.github/.github/workflows/pr-review-mention-reusable.yml@pr-review-mention/v2-stable  # NOSONAR(githubactions:S7637) first-party channel ref
-    secrets:
-      GH_PAT_WORKFLOWS: ${{ secrets.GH_PAT_DON_PETRY || secrets.GH_PAT_WORKFLOWS }}
-      DON_PETRY_BOT_GH_PAT: ${{ secrets.DON_PETRY_BOT_GH_PAT }}
+    uses: petry-projects/.github/.github/workflows/pr-review-mention-reusable.yml@pr-review-mention/stable  # NOSONAR(githubactions:S7637) first-party channel ref
+    secrets: inherit
 CANONICAL
 )" > "$canon"
   run cmp -- "$canon" "$STUB"
@@ -88,14 +82,14 @@ CANONICAL
   }
 }
 
-@test "uses: ref is pinned to the pr-review-mention/v2-stable channel" {
-  grep -qF 'uses: petry-projects/.github/.github/workflows/pr-review-mention-reusable.yml@pr-review-mention/v2-stable' "$STUB"
+@test "uses: ref is pinned to the pr-review-mention/stable channel" {
+  grep -qF 'uses: petry-projects/.github/.github/workflows/pr-review-mention-reusable.yml@pr-review-mention/stable' "$STUB"
 }
 
 @test "uses: ref is not repointed to @main, a SHA, or a frozen @vN" {
-  if grep -qE 'pr-review-mention-reusable\.yml@(main|[0-9a-f]{7,40}|v[0-9]+([[:space:]]|$))' "$STUB"; then
+  if grep -qE 'pr-review-mention-reusable\.yml@(main|[0-9a-f]{7,40}|v[0-9]+)' "$STUB"; then
     echo "Error: The uses: ref in $STUB is pointed to a forbidden ref (main, SHA, or frozen vN)." >&2
-    echo "It must be pinned to the pr-review-mention/v2-stable channel." >&2
+    echo "It must be pinned to the pr-review-mention/stable channel." >&2
     return 1
   fi
 }
@@ -111,10 +105,7 @@ CANONICAL
   grep -q '^permissions: {}' "$STUB" || { echo "Top-level permissions are not locked down to {}"; return 1; }
 }
 
-@test "job grants exactly pull-requests: write and forwards named secrets" {
+@test "job grants exactly pull-requests: write and inherits secrets" {
   grep -qE '^      pull-requests: write' "$STUB" || { echo "Missing pull-requests: write permission"; return 1; }
-  grep -qF 'GH_PAT_WORKFLOWS: ${{ secrets.GH_PAT_DON_PETRY || secrets.GH_PAT_WORKFLOWS }}' "$STUB" \
-    || { echo "Missing GH_PAT_WORKFLOWS secret with GH_PAT_DON_PETRY fallback"; return 1; }
-  grep -qF 'DON_PETRY_BOT_GH_PAT: ${{ secrets.DON_PETRY_BOT_GH_PAT }}' "$STUB" \
-    || { echo "Missing DON_PETRY_BOT_GH_PAT secret"; return 1; }
+  grep -qF 'secrets: inherit' "$STUB" || { echo "Missing secrets: inherit"; return 1; }
 }
