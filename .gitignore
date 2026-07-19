@@ -416,3 +416,7 @@ coverage/
 
 # Logs / env
 *.log
+.env
+.env.*
+# Dev-lead agent working directory (internal checkout — never commit)
+.dev-lead/
