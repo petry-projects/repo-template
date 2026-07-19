@@ -26,7 +26,10 @@ STUB="${BATS_TEST_DIRNAME}/../.github/workflows/pr-review-mention.yml"
   # this repo and caused CI to fail with exit 127 on every run.
   local canon
   canon="$(mktemp)"
-  cat > "$canon" << 'CANONICAL'
+  # The seed baseline (scripts/seed-repo-template.sh → contents API) ships this
+  # stub with NO trailing newline, so strip the heredoc's trailing newline to
+  # keep this guard byte-faithful to what template_stub_drift.sh compares against.
+  printf '%s' "$(cat << 'CANONICAL'
 # ─────────────────────────────────────────────────────────────────────────────
 # SOURCE OF TRUTH: petry-projects/.github/standards/workflows/pr-review-mention.yml
 # Standard:        petry-projects/.github/standards/ci-standards.md
@@ -49,7 +52,11 @@ STUB="${BATS_TEST_DIRNAME}/../.github/workflows/pr-review-mention.yml"
 #
 # PR Review Mention — thin caller for the org-level reusable.
 # To adopt: copy this file to .github/workflows/pr-review-mention.yml in your repo.
-# Requires: GH_PAT_WORKFLOWS org secret (already present in petry-projects org).
+# Requires (org secrets, already present in petry-projects org):
+#   GH_PAT_DON_PETRY     canonical PAT for API calls and dispatching the review agent.
+#                        GH_PAT_WORKFLOWS is the deprecated transition alias, kept as the
+#                        `||` fallback until the persona rename lands fleet-wide.
+#   DON_PETRY_BOT_GH_PAT PAT owned by donpetry-bot, for posting acknowledgement comments.
 name: PR Review — Mention Trigger
 
 on:
@@ -67,8 +74,11 @@ jobs:
     permissions:
       pull-requests: write
     uses: petry-projects/.github/.github/workflows/pr-review-mention-reusable.yml@pr-review-mention/stable  # NOSONAR(githubactions:S7637) first-party channel ref
-    secrets: inherit
+    secrets:
+      GH_PAT_WORKFLOWS: ${{ secrets.GH_PAT_DON_PETRY || secrets.GH_PAT_WORKFLOWS }}
+      DON_PETRY_BOT_GH_PAT: ${{ secrets.DON_PETRY_BOT_GH_PAT }}
 CANONICAL
+)" > "$canon"
   run cmp -- "$canon" "$STUB"
   rm -f "$canon"
   [ "$status" -eq 0 ] || {
@@ -100,7 +110,10 @@ CANONICAL
   grep -q '^permissions: {}' "$STUB" || { echo "Top-level permissions are not locked down to {}"; return 1; }
 }
 
-@test "job grants exactly pull-requests: write and inherits secrets" {
+@test "job grants exactly pull-requests: write and forwards named secrets" {
   grep -qE '^      pull-requests: write' "$STUB" || { echo "Missing pull-requests: write permission"; return 1; }
-  grep -qF 'secrets: inherit' "$STUB" || { echo "Missing secrets: inherit"; return 1; }
+  grep -qF 'GH_PAT_WORKFLOWS: ${{ secrets.GH_PAT_DON_PETRY || secrets.GH_PAT_WORKFLOWS }}' "$STUB" \
+    || { echo "Missing GH_PAT_WORKFLOWS secret with GH_PAT_DON_PETRY fallback"; return 1; }
+  grep -qF 'DON_PETRY_BOT_GH_PAT: ${{ secrets.DON_PETRY_BOT_GH_PAT }}' "$STUB" \
+    || { echo "Missing DON_PETRY_BOT_GH_PAT secret"; return 1; }
 }
