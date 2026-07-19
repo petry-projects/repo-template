@@ -97,7 +97,7 @@ CANONICAL
 }
 
 @test "top-level permissions are locked down to {}" {
-  grep -qE '^permissions: \{\}' "$STUB" || { echo "Top-level permissions are not locked down to {}"; return 1; }
+  grep -q '^permissions: {}' "$STUB" || { echo "Top-level permissions are not locked down to {}"; return 1; }
 }
 
 @test "job grants exactly pull-requests: write and inherits secrets" {
