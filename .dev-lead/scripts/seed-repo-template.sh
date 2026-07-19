@@ -1,3 +1,18 @@
+#!/usr/bin/env bash
+# Seeding utility for petry-projects/repo-template.
+#
+# Usage:
+#   seed-repo-template.sh --emit-workflow <workflow-name>
+#     Prints the canonical stub bytes for the named workflow to stdout.
+#     Used by tests/pr-review-mention-stub.bats to enforce byte-identity.
+
+set -euo pipefail
+
+emit_workflow() {
+  local name="${1:?workflow name required}"
+  case "$name" in
+    pr-review-mention.yml)
+      cat << 'CANONICAL'
 # ─────────────────────────────────────────────────────────────────────────────
 # SOURCE OF TRUTH: petry-projects/.github/standards/workflows/pr-review-mention.yml
 # Standard:        petry-projects/.github/standards/ci-standards.md
@@ -39,3 +54,38 @@ jobs:
       pull-requests: write
     uses: petry-projects/.github/.github/workflows/pr-review-mention-reusable.yml@pr-review-mention/stable  # NOSONAR(githubactions:S7637) first-party channel ref
     secrets: inherit
+CANONICAL
+      ;;
+    *)
+      printf 'seed-repo-template.sh: unknown workflow: %s\n' "$name" >&2
+      exit 1
+      ;;
+  esac
+}
+
+main() {
+  local mode="" workflow=""
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --emit-workflow)
+        mode="emit"
+        workflow="${2:?--emit-workflow requires a workflow filename}"
+        shift 2
+        ;;
+      *)
+        printf 'seed-repo-template.sh: unknown option: %s\n' "$1" >&2
+        exit 1
+        ;;
+    esac
+  done
+
+  case "$mode" in
+    emit) emit_workflow "$workflow" ;;
+    *)
+      printf 'Usage: seed-repo-template.sh --emit-workflow <workflow-name>\n' >&2
+      exit 1
+      ;;
+  esac
+}
+
+main "$@"
