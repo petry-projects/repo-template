@@ -29,7 +29,7 @@ STUB="${BATS_TEST_DIRNAME}/../.github/workflows/pr-review-mention.yml"
   # The live canonical (petry-projects/.github → standards/workflows/pr-review-mention.yml,
   # blob 2d6c410e) ships this stub WITH a single trailing newline. Emit the heredoc
   # with exactly one trailing newline (printf '%s\n') so this guard stays byte-faithful
-  # to the source of truth that template_stub_drift.sh compares blob SHAs against.
+  # to the upstream blob that the fleet stub-drift monitor compares SHAs against.
   printf '%s\n' "$(cat << 'CANONICAL'
 # ─────────────────────────────────────────────────────────────────────────────
 # SOURCE OF TRUTH: petry-projects/.github/standards/workflows/pr-review-mention.yml
