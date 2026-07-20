@@ -26,10 +26,11 @@ STUB="${BATS_TEST_DIRNAME}/../.github/workflows/pr-review-mention.yml"
   # this repo and caused CI to fail with exit 127 on every run.
   local canon
   canon="$(mktemp)"
-  # The seed baseline (scripts/seed-repo-template.sh → contents API) ships this
-  # stub with NO trailing newline, so strip the heredoc's trailing newline to
-  # keep this guard byte-faithful to what template_stub_drift.sh compares against.
-  printf '%s' "$(cat << 'CANONICAL'
+  # The live canonical (petry-projects/.github → standards/workflows/pr-review-mention.yml,
+  # blob 2d6c410e) ships this stub WITH a single trailing newline. Emit the heredoc
+  # with exactly one trailing newline (printf '%s\n') so this guard stays byte-faithful
+  # to the upstream blob that the fleet stub-drift monitor compares SHAs against.
+  printf '%s\n' "$(cat << 'CANONICAL'
 # ─────────────────────────────────────────────────────────────────────────────
 # SOURCE OF TRUTH: petry-projects/.github/standards/workflows/pr-review-mention.yml
 # Standard:        petry-projects/.github/standards/ci-standards.md
