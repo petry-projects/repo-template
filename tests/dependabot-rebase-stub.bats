@@ -5,8 +5,7 @@
 # org template (petry-projects/.github → standards/workflows/dependabot-rebase.yml)
 # and must stay byte-identical across every adopting repo, modulo the per-repo
 # channel pin on the `uses:` ref. Any other diff is drift — the silent-revert
-# class of failure the fleet stub-drift monitor exists to catch (template_stub_drift.sh
-# lists this exact path in TEMPLATE_DRIFT_FILES).
+# class of failure the fleet stub-drift monitor exists to catch (fleet_stub_drift.sh).
 #
 # The stub's behavior lives entirely in the central reusable; its `uses:` ref,
 # trigger events, concurrency group, job `permissions:` block, and secrets block
@@ -28,11 +27,10 @@ STUB="${BATS_TEST_DIRNAME}/../.github/workflows/dependabot-rebase.yml"
   # (petry-projects/.github/standards/workflows/dependabot-rebase.yml) changes.
   local canon
   canon="$(mktemp)"
-  # The seed baseline (scripts/seed-repo-template.sh → contents API) ships this
-  # stub with NO trailing newline — like every other repo-template workflow stub
-  # except pr-review-mention.yml — so emit the heredoc with its trailing newline
+  # The committed stub has NO trailing newline — unlike pr-review-mention.yml
+  # which ships with one — so emit the heredoc with its trailing newline
   # stripped (printf '%s') to stay byte-faithful to the committed, production stub
-  # that template_stub_drift.sh compares SHAs against.
+  # that the fleet stub-drift monitor compares SHAs against.
   printf '%s' "$(cat << 'CANONICAL'
 # ─────────────────────────────────────────────────────────────────────────────
 # SOURCE OF TRUTH: petry-projects/.github/standards/workflows/dependabot-rebase.yml
@@ -92,10 +90,11 @@ jobs:
       APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
 CANONICAL
 )" > "$canon"
-  run cmp -- "$canon" "$STUB"
+  run diff -u "$canon" "$STUB"
   rm -f "$canon"
   [ "$status" -eq 0 ] || {
-    echo "stub drifted from canonical: $output"
+    echo "stub drifted from canonical:"
+    echo "$output"
     return 1
   }
 }
