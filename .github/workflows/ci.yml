@@ -56,6 +56,13 @@ jobs:
       - name: Placeholder — replace with real build/test steps
         run: echo "CI stub — add your stack's lint/format/typecheck/test/coverage steps; see BOOTSTRAP.md."
 
+
+      - name: Install bats
+        run: sudo apt-get install -y bats
+
+      - name: Run compliance regression tests
+        run: bats tests/ci-secret-scan.bats
+
   # Canonical secret-scan job — copied verbatim from push-protection.md#required-ci-job.
   # Produces the `Secret scan (gitleaks)` required check. Uses the gitleaks CLI (not
   # gitleaks/gitleaks-action, whose v2+ needs a paid org license); fully pinned +
