@@ -63,6 +63,7 @@ Two onboarding questions are resolved here so they are not left implicit:
 
   CodeRabbit and SonarCloud work org-wide and need no per-repo step.
 
+
 ---
 
 The rest — CODEOWNERS, AGENTS.md/CLAUDE.md pointers, LICENSE, SECURITY.md,
