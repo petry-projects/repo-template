@@ -86,7 +86,7 @@ STUB="${BATS_TEST_DIRNAME}/../.github/workflows/dependabot-automerge.yml"
 #
 # Dependabot auto-merge — thin caller for the org-level reusable.
 # To adopt: copy this file to .github/workflows/dependabot-automerge.yml in your repo.
-# Required org/repo secrets (inherited):
+# Required secrets (forwarded explicitly via the secrets: block below):
 #   APP_ID         — GitHub App ID with contents:write and pull-requests:write
 #   APP_PRIVATE_KEY — GitHub App private key
 name: Dependabot auto-merge
