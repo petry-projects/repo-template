@@ -8,7 +8,7 @@
 #     reusable workflow above.
 #   • You MAY change: the workflow name(s) in `workflow_run.workflows` to match
 #     your repository's CI workflow name(s).
-#   • You MUST NOT change: the `@pr-auto-review/v1-stable` channel in the `uses:`
+#   • You MUST NOT change: the `@pr-auto-review/stable` channel in the `uses:`
 #     line — this reusable is on the org-wide moving-channel model (rollout and
 #     rollback are a single central tag move; a frozen `@vN`/`@<sha>` pin is
 #     rejected by the compliance audit). Nor the trigger event types or the
@@ -28,7 +28,7 @@ on:
   # workflow_run fires when a named GitHub Actions workflow completes.
   # check_suite does NOT trigger for GitHub Actions runs, so this is required
   # to catch CI turning green on a PR.
-  # Customize: replace "CI" with your repository's CI workflow name(s) if needed.
+  # TODO: replace "CI" with your repository's CI workflow name(s).
   workflow_run:
     workflows: ["CI"]
     types: [completed]
@@ -46,15 +46,6 @@ permissions: {}
 
 jobs:
   pr-auto-review:
-    # Fork `pull_request` events (including dependabot[bot] and other external
-    # contributors) run with a read-only token and NO access to org secrets, so
-    # `secrets.GH_PAT_DON_PETRY || secrets.GH_PAT_WORKFLOWS` is empty, the
-    # reusable's GH_TOKEN is blank, and every gh call exits 4. Readiness for fork
-    # PRs is still evaluated on the secret-bearing workflow_run / check_suite events
-    # (which run in the base-repo context), so skip the token-less pull_request run —
-    # it yields a `skipped`, not `failure`, conclusion. Scoped to the pull_request
-    # event so workflow_run / check_suite runs still execute.
-    if: github.event_name != 'pull_request' || github.repository == github.event.pull_request.head.repo.full_name  # NOSONAR — availability guard, not a security gate; worst case is a skipped run, not a privilege grant
     permissions:
       pull-requests: read
       checks: read
