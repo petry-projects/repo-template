@@ -61,7 +61,7 @@ jobs:
         run: sudo apt-get install -y bats
 
       - name: Run compliance regression tests
-        run: bats tests/ci-secret-scan.bats
+        run: bats tests/ci-secret-scan.bats tests/code-quality-ruleset.bats
 
   # Canonical secret-scan job — copied verbatim from push-protection.md#required-ci-job.
   # Produces the `Secret scan (gitleaks)` required check. Uses the gitleaks CLI (not
