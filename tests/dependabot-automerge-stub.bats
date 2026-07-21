@@ -109,7 +109,7 @@ jobs:
       APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
 CANONICAL
 )" > "$canon"
-  run cmp -- "$canon" "$STUB"
+  run diff -u -- "$canon" "$STUB"
   rm -f "$canon"
   [ "$status" -eq 0 ] || {
     echo "stub drifted from canonical: $output"

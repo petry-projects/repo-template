@@ -133,7 +133,7 @@ jobs:
     uses: petry-projects/.github/.github/workflows/auto-rebase-reusable.yml@auto-rebase/stable  # NOSONAR(githubactions:S7637) first-party channel ref
 CANONICAL
 )" > "$canon"
-  run cmp -- "$canon" "$STUB"
+  run diff -u -- "$canon" "$STUB"
   rm -f "$canon"
   [ "$status" -eq 0 ] || {
     echo "stub drifted from canonical: $output"
