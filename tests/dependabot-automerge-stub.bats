@@ -3,9 +3,11 @@
 #
 # .github/workflows/dependabot-automerge.yml is copied VERBATIM from the canonical
 # org template (petry-projects/.github → standards/workflows/dependabot-automerge.yml)
-# and must stay byte-identical across every adopting repo, modulo the per-repo
-# channel pin on the `uses:` ref. Any other diff is drift — the silent-revert class
-# of failure the fleet stub-drift monitor exists to catch (fleet_stub_drift.sh).
+# and must stay byte-identical across every adopting repo. The `uses:` ref is pinned
+# to the `dependabot-automerge/stable` channel — the only permitted channel; never
+# repoint it to an alternate channel, @main, a SHA, or a frozen @vN. Any other diff
+# is drift — the silent-revert class of failure the fleet stub-drift monitor exists
+# to catch (fleet_stub_drift.sh).
 #
 # The stub's behavior lives entirely in the central reusable; its `uses:` ref,
 # trigger event, and job `permissions:` block are drift-protected and MUST NOT be

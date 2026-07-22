@@ -2,10 +2,11 @@
 # Drift & compliance regression guard for the dev-lead thin caller stub.
 #
 # .github/workflows/dev-lead.yml is copied VERBATIM from the canonical org template
-# and must stay full-file identical across every adopting repo, modulo the per-repo
-# channel pin on the `uses:` ref and its matching `agent_ref`. Any other diff is
-# drift — the silent-revert class of failure the fleet stub-drift monitor exists to
-# catch (fleet_stub_drift.sh).
+# and must stay full-file identical across every adopting repo. The `uses:` ref is
+# pinned to the `dev-lead/stable` channel, with its matching `agent_ref` — the only
+# permitted channel; never repoint either to an alternate channel, @main, a SHA, or
+# a frozen @vN. Any other diff is drift — the silent-revert class of failure the
+# fleet stub-drift monitor exists to catch (fleet_stub_drift.sh).
 #
 # The stub's behavior lives entirely in the central reusable; its `uses:` ref,
 # trigger events, top-level `permissions:`, and job `permissions:` block are drift-
@@ -39,8 +40,10 @@ STUB="${BATS_TEST_DIRNAME}/../.github/workflows/dev-lead.yml"
 @test "core trigger events are present" {
   grep -qE '^  pull_request:' "$STUB" || { echo "Missing pull_request trigger"; return 1; }
   grep -qE '^  pull_request_review:' "$STUB" || { echo "Missing pull_request_review trigger"; return 1; }
+  grep -qE '^  pull_request_review_comment:' "$STUB" || { echo "Missing pull_request_review_comment trigger"; return 1; }
   grep -qE '^  issue_comment:' "$STUB" || { echo "Missing issue_comment trigger"; return 1; }
   grep -qE '^  issues:' "$STUB" || { echo "Missing issues trigger"; return 1; }
+  grep -qE '^  check_run:' "$STUB" || { echo "Missing check_run trigger"; return 1; }
   grep -qE '^  repository_dispatch:' "$STUB" || { echo "Missing repository_dispatch trigger"; return 1; }
 }
 
