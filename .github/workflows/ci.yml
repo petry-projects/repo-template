@@ -96,7 +96,9 @@ jobs:
   # block below (keep the job id and `name:` as `coverage` so the required check is stable).
   coverage:
     name: coverage
-    runs-on: ubuntu-latest
+    # kcov is not available in ubuntu-24.04 (ubuntu-latest) apt repos — pin to
+    # 22.04 where it is still packaged. Track: petry-projects/.github#867
+    runs-on: ubuntu-22.04
     permissions:
       contents: read
     steps:
