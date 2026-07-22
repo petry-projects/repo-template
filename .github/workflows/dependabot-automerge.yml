@@ -8,7 +8,7 @@
 #     App token dance live in the reusable workflow above.
 #   • You MAY change: nothing in this file in normal use. Adopt verbatim.
 #   • You MUST NOT change: trigger event (must be `pull_request_target`),
-#     the `uses:` line, `secrets: inherit`, or the job-level `permissions:`
+#     the `uses:` line, the explicit secrets block, or the job-level `permissions:`
 #     block — reusable workflows can be granted no more permissions than the
 #     calling job has, so removing the stanza breaks the reusable's gh API
 #     calls.
@@ -18,7 +18,7 @@
 #
 # Dependabot auto-merge — thin caller for the org-level reusable.
 # To adopt: copy this file to .github/workflows/dependabot-automerge.yml in your repo.
-# Required org/repo secrets (inherited):
+# Required secrets (forwarded explicitly via the secrets: block below):
 #   APP_ID         — GitHub App ID with contents:write and pull-requests:write
 #   APP_PRIVATE_KEY — GitHub App private key
 name: Dependabot auto-merge
@@ -35,5 +35,7 @@ jobs:
     permissions:
       contents: read
       pull-requests: read
-    uses: petry-projects/.github/.github/workflows/dependabot-automerge-reusable.yml@dependabot-automerge/v2-stable  # NOSONAR(githubactions:S7637) first-party channel ref
-    secrets: inherit
+    uses: petry-projects/.github/.github/workflows/dependabot-automerge-reusable.yml@dependabot-automerge/stable  # NOSONAR(githubactions:S7637) first-party channel ref
+    secrets:
+      APP_ID: ${{ secrets.APP_ID }}
+      APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
