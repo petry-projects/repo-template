@@ -416,4 +416,5 @@ coverage/
 
 # Logs
 *.log
-
+.env
+.env.*
