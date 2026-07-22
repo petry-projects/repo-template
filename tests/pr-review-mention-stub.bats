@@ -88,14 +88,14 @@ CANONICAL
   }
 }
 
-@test "uses: ref is pinned to the pr-review-mention/v2-stable channel" {
-  grep -qF 'uses: petry-projects/.github/.github/workflows/pr-review-mention-reusable.yml@pr-review-mention/v2-stable' "$STUB"
+@test "uses: ref is pinned to the pr-review-mention/v2-next channel" {
+  grep -qF 'uses: petry-projects/.github/.github/workflows/pr-review-mention-reusable.yml@pr-review-mention/v2-next' "$STUB"
 }
 
 @test "uses: ref is not repointed to @main, a SHA, or a frozen @vN" {
   if grep -qE 'pr-review-mention-reusable\.yml@(main|[0-9a-f]{7,40}|v[0-9]+$)' "$STUB"; then
     echo "Error: The uses: ref in $STUB is pointed to a forbidden ref (main, SHA, or frozen vN)." >&2
-    echo "It must be pinned to the pr-review-mention/v2-stable channel." >&2
+    echo "It must be pinned to the pr-review-mention/v2-next channel." >&2
     return 1
   fi
 }
