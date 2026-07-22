@@ -1,7 +1,7 @@
 # Bootstrap a new repo from this template
 
 This template ships the org baseline: the thin-caller workflow stubs (pinned to
-their published `@<name>/<version>-stable` channel tags) and the root/baseline files. Most
+their published `@<name>/stable` channel tags) and the root/baseline files. Most
 of it works out of the box. Two things are **per-stack** and must be picked once,
 after you create your repo from the template:
 
