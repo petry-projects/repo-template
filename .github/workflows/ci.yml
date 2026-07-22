@@ -112,16 +112,10 @@ jobs:
             exit 0
           fi
           sudo apt-get update -qq
-          sudo apt-get install -y -qq bats
-          # kcov is not available in Ubuntu 24.04 apt repos; fall back to bare bats when absent
-          if sudo apt-get install -y -qq kcov 2>/dev/null; then
-            mkdir -p coverage
-            kcov --include-path=. --exclude-path=tests,coverage coverage bats "${bats_files[@]}"
-            echo "Coverage report written to ./coverage"
-          else
-            echo "kcov not available via apt — running bats without coverage instrumentation"
-            bats "${bats_files[@]}"
-          fi
+          sudo apt-get install -y -qq bats kcov
+          mkdir -p coverage
+          kcov --include-path=. --exclude-path=tests,coverage coverage bats "${bats_files[@]}"
+          echo "Coverage report written to ./coverage"
 
       # ── Per-stack expansion — replace/augment the shell block above for your stack.
       #    Keep the job id and `name:` as `coverage` so the required check is unchanged.
