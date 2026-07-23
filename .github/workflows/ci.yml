@@ -112,7 +112,20 @@ jobs:
             exit 0
           fi
           sudo apt-get update -qq
-          sudo apt-get install -y -qq bats kcov
+          sudo apt-get install -y -qq bats
+
+          # Install kcov from GitHub releases (not available in Ubuntu 24.04 repos)
+          kcov_version="42"
+          kcov_tarball="kcov-${kcov_version}-x86_64-unknown-linux-gnu.tar.gz"
+          kcov_url="https://github.com/SimonKagstrom/kcov/releases/download/v${kcov_version}/${kcov_tarball}"
+          kcov_checksum="e8685cfc4b64b97fe74849cec5e34d92b97c21a37f0bbbabbbcf8da4a72d5e33"
+
+          wget -q "${kcov_url}" -O /tmp/kcov.tar.gz
+          echo "${kcov_checksum}  /tmp/kcov.tar.gz" | sha256sum -c
+          tar -xzf /tmp/kcov.tar.gz -C /tmp
+          sudo mv /tmp/kcov-${kcov_version}-x86_64-unknown-linux-gnu/bin/kcov /usr/local/bin
+          rm -rf /tmp/kcov.tar.gz /tmp/kcov-${kcov_version}-x86_64-unknown-linux-gnu
+
           mkdir -p coverage
           kcov --include-path=. --exclude-path=tests,coverage coverage bats "${bats_files[@]}"
           echo "Coverage report written to ./coverage"
