@@ -120,7 +120,7 @@ jobs:
           kcov_url="https://github.com/SimonKagstrom/kcov/releases/download/v${kcov_version}/${kcov_tarball}"
           kcov_checksum="e8685cfc4b64b97fe74849cec5e34d92b97c21a37f0bbbabbbcf8da4a72d5e33"
 
-          wget -q "${kcov_url}" -O /tmp/kcov.tar.gz
+          wget -q --https-only "${kcov_url}" -O /tmp/kcov.tar.gz
           echo "${kcov_checksum}  /tmp/kcov.tar.gz" | sha256sum -c
           tar -xzf /tmp/kcov.tar.gz -C /tmp
           sudo mv /tmp/kcov-${kcov_version}-x86_64-unknown-linux-gnu/bin/kcov /usr/local/bin
