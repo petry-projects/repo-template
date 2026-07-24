@@ -118,7 +118,7 @@ jobs:
           # Build kcov from source — the pre-built v42 binary links against
           # libopcodes-2.38-system.so (Ubuntu 22.04 binutils) which is absent on
           # Ubuntu 24.04. Building from source picks up the runner's native binutils.
-          KCOV_EXPECTED_SHA="2f56f8745d17208d3e8e3d6411516e45f9498263"
+          KCOV_EXPECTED_SHA="3a8c5464be2dd781988dca7ec30db679493ed9a8"
           git clone --depth=1 --branch "v42" \
             https://github.com/SimonKagstrom/kcov.git /tmp/kcov-src
           actual_sha="$(git -C /tmp/kcov-src rev-parse HEAD)"
