@@ -396,7 +396,11 @@ actionlint.tar.gz
 # End of petry-projects secrets baseline
 # ============================================================================
 # <<< END petry-projects secrets baseline <<<
-
+#
+# L2 — ecosystem / OS extension (per-repo; free to edit — see
+# standards/gitignore-standard.md). The baseline above covers secrets; append
+# language / framework / OS entries below. Never re-ignore a path the baseline
+# negates (e.g. .env.example).
 
 # OS / editor
 .DS_Store
@@ -410,5 +414,5 @@ dist/
 build/
 coverage/
 
-# Logs / env
+# Logs
 *.log
