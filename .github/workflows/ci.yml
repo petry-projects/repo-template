@@ -113,14 +113,19 @@ jobs:
           fi
           sudo apt-get update -qq
           sudo apt-get install -y -qq bats cmake g++ pkg-config \
-            libssl-dev libcurl4-openssl-dev zlib1g-dev libdw-dev libelf-dev binutils-dev
+            libssl-dev libcurl4-openssl-dev zlib1g-dev libdw-dev libelf-dev binutils-dev libiberty-dev
 
           # Build kcov from source — the pre-built v42 binary links against
           # libopcodes-2.38-system.so (Ubuntu 22.04 binutils) which is absent on
           # Ubuntu 24.04. Building from source picks up the runner's native binutils.
-          kcov_version="42"
-          git clone --depth=1 --branch "v${kcov_version}" \
+          KCOV_EXPECTED_SHA="2f56f8745d17208d3e8e3d6411516e45f9498263"
+          git clone --depth=1 --branch "v42" \
             https://github.com/SimonKagstrom/kcov.git /tmp/kcov-src
+          actual_sha="$(git -C /tmp/kcov-src rev-parse HEAD)"
+          if [ "${actual_sha}" != "${KCOV_EXPECTED_SHA}" ]; then
+            echo "kcov SHA mismatch: expected ${KCOV_EXPECTED_SHA}, got ${actual_sha}"
+            exit 1
+          fi
           cmake -S /tmp/kcov-src -B /tmp/kcov-build \
             -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local
           cmake --build /tmp/kcov-build -j"$(nproc)"
