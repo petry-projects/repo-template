@@ -69,7 +69,17 @@ extract_l1_span() {
     echo "BEGIN … END secrets-baseline block not found in .gitignore"
     return 1
   }
-  actual="$(printf '%s' "$span" | sha256sum | awk '{print $1}')"
+  # Portable hash computation: try sha256sum (Linux), shasum (macOS), openssl (fallback).
+  if command -v sha256sum >/dev/null 2>&1; then
+    actual="$(printf '%s' "$span" | sha256sum | awk '{print $1}')"
+  elif command -v shasum >/dev/null 2>&1; then
+    actual="$(printf '%s' "$span" | shasum -a 256 | awk '{print $1}')"
+  elif command -v openssl >/dev/null 2>&1; then
+    actual="$(printf '%s' "$span" | openssl dgst -sha256 | awk '{print $NF}')"
+  else
+    echo "No sha256sum / shasum / openssl found — cannot compute hash"
+    return 1
+  fi
   [ "$actual" = "$GITIGNORE_L1_SHA256" ] || {
     echo "L1 baseline drift: expected $GITIGNORE_L1_SHA256, got $actual"
     echo "Re-copy the block verbatim from the org /.gitignore; never edit inside the markers."
