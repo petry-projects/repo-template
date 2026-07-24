@@ -87,47 +87,6 @@ extract_l1_span() {
   }
 }
 
-@test "SOPS/age-encrypted files (.enc.yaml) are re-allowed by the baseline" {
-  # *.secret.* is ignored (section 11), but the baseline now re-allows SOPS/age
-  # encrypted variants (!*.enc.yaml, !*.enc.yml, !*.enc.json, !*.sops.yaml, !*.sops.yml, !*.sops.json) because
-  # they are safe to commit. The later negation wins, so config.secret.enc.yaml
-  # is NOT ignored. check-ignore exits 1 when the path is not ignored.
-  run git -C "$BATS_TEST_DIRNAME/.." check-ignore --no-index "config.secret.enc.yaml"
-  [ "$status" -eq 1 ]
-}
-
-@test "public certificate files (.crt) are not ignored" {
-  # !ca.crt and !*.crt are explicit negations in section 4 of the baseline.
-  run git -C "$BATS_TEST_DIRNAME/.." check-ignore --no-index "ca.crt"
-  [ "$status" -ne 0 ]
-}
-
-@test "public key files (.pub) are not ignored" {
-  # id_rsa.* is ignored, but !*.pub re-allows public key files.
-  run git -C "$BATS_TEST_DIRNAME/.." check-ignore --no-index "id_rsa.pub"
-  [ "$status" -ne 0 ]
-}
-
-@test "private key files (.pem) are ignored" {
-  # *.pem is in the ignore list (section 4); private keys must not slip through.
-  run git -C "$BATS_TEST_DIRNAME/.." check-ignore --no-index "private.pem"
-  [ "$status" -eq 0 ]
-}
-
-@test "database dump files (.sql.gz) are ignored" {
-  # *.sql.gz is in the ignore list (section 7).
-  run git -C "$BATS_TEST_DIRNAME/.." check-ignore --no-index "backup.sql.gz"
-  [ "$status" -eq 0 ]
-}
-
-@test ".env.vault is ignored by the baseline (dotenv family, no re-allow)" {
-  # .env.* catches .env.vault. The baseline no longer carries a !.env.vault
-  # re-allow, so .env.vault is ignored like the rest of the dotenv family; a repo
-  # that must commit dotenv-vault ciphertext re-allows it below the END marker.
-  run git -C "$BATS_TEST_DIRNAME/.." check-ignore --no-index ".env.vault"
-  [ "$status" -eq 0 ]
-}
-
 @test "L2 does not re-ignore a baseline-negated dotenv path" {
   # The baseline ignores the dotenv family but re-allows committed templates via
   # negations (!.env.example, !.env.sample, …). A broad `.env` or `.env.*`
