@@ -117,6 +117,7 @@ extract_l1_span() {
   [ "$status" -eq 0 ]
 }
 
+
 @test "L2 does not re-ignore a baseline-negated dotenv path" {
   # The baseline ignores the dotenv family but re-allows committed templates via
   # negations (!.env.example, !.env.sample, …). A broad `.env` or `.env.*`
