@@ -32,7 +32,7 @@ GITIGNORE_L1_SHA256='1d4a83d95f8ee135aee79215b022dce1ac1cf8e049642ef9e82f1a80b69
 # pp_extract_baseline_block. Prints nothing and exits non-zero if the block is
 # absent or the BEGIN marker has no matching END.
 extract_l1_span() {
-  tr -d '\r' | awk -v b="$BEGIN_MARKER" -v e="$END_MARKER" '
+  sed 's/\r$//' | awk -v b="$BEGIN_MARKER" -v e="$END_MARKER" '
     $0 == b { inblock = 1 }
     inblock { buf = buf $0 "\n" }
     $0 == e && inblock { printf "%s", buf; found = 1; exit }
@@ -89,14 +89,16 @@ extract_l1_span() {
 
 @test "L2 does not re-ignore a baseline-negated dotenv path" {
   # The baseline ignores the dotenv family but re-allows committed templates via
-  # negations (!.env.example, !.env.sample, …). A broad `.env` / `.env.*` line
-  # in L2 (below END, evaluated later) would silently re-hide those, violating
-  # negation discipline (gitignore-standard.md#negation-discipline).
+  # negations (!.env.example, !.env.sample, …). A broad `.env` or `.env.*`
+  # wildcard in L2 (below END, evaluated later) would silently re-hide those,
+  # violating negation discipline (gitignore-standard.md#negation-discipline).
+  # Specific patterns like `.env.local` are fine; only the broad wildcard forms
+  # (optionally with a leading `/` or trailing whitespace) are forbidden.
   local l2
   l2="$(awk -v e="$END_MARKER" 'past { print } $0 == e { past = 1 }' "$GITIGNORE")"
-  run grep -Exq '\.env(\..*)?' <<< "$l2"
+  run grep -Exq '/?\.env(\.\*)?\s*' <<< "$l2"
   [ "$status" -ne 0 ] || {
-    echo "L2 re-ignores a dotenv path the baseline negates — remove the broad .env/.env.* line below the END marker."
+    echo "L2 contains a broad .env or .env.* wildcard that re-ignores baseline-negated templates — remove it from below the END marker."
     return 1
   }
 }
