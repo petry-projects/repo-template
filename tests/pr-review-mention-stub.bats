@@ -40,7 +40,7 @@ STUB="${BATS_TEST_DIRNAME}/../.github/workflows/pr-review-mention.yml"
 #   • This file is a THIN CALLER STUB. All review-dispatch logic lives in the
 #     reusable workflow above.
 #   • You MUST NOT change: the `uses:` ref — it is pinned to the
-#     `pr-review-mention/v2-next` channel, a moving tag advanced centrally.
+#     `pr-review-mention/v2-stable` channel, a moving tag advanced centrally.
 #     Never repoint it to `@main`, a SHA, or a frozen `@vX` (see
 #     ci-standards.md → Reusable workflow versioning). Also do not change the
 #     trigger events or the job-level `permissions:` block — reusable workflows
@@ -74,7 +74,7 @@ jobs:
   pr-review-mention:
     permissions:
       pull-requests: write
-    uses: petry-projects/.github/.github/workflows/pr-review-mention-reusable.yml@pr-review-mention/v2-next  # NOSONAR(githubactions:S7637) first-party channel ref
+    uses: petry-projects/.github/.github/workflows/pr-review-mention-reusable.yml@pr-review-mention/v2-stable  # NOSONAR(githubactions:S7637) first-party channel ref
     secrets:
       GH_PAT_WORKFLOWS: ${{ secrets.GH_PAT_DON_PETRY || secrets.GH_PAT_WORKFLOWS }}
       DON_PETRY_BOT_GH_PAT: ${{ secrets.DON_PETRY_BOT_GH_PAT }}
@@ -88,8 +88,8 @@ CANONICAL
   }
 }
 
-@test "uses: ref is pinned to the pr-review-mention/v2-next channel" {
-  grep -qF 'uses: petry-projects/.github/.github/workflows/pr-review-mention-reusable.yml@pr-review-mention/v2-next' "$STUB"
+@test "uses: ref is pinned to the pr-review-mention/v2-stable channel" {
+  grep -qF 'uses: petry-projects/.github/.github/workflows/pr-review-mention-reusable.yml@pr-review-mention/v2-stable' "$STUB"
 }
 
 @test "uses: ref is not repointed to @main, a SHA, or a frozen @vN" {
