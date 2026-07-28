@@ -36,8 +36,8 @@ CI_WORKFLOW="${BATS_TEST_DIRNAME}/../.github/workflows/ci.yml"
   # Parse YAML semantically so any valid representation (inline or block list) is accepted.
   python3 - "$STUB" "$CI_WORKFLOW" <<'PYEOF'
 import yaml, sys
-stub = yaml.safe_load(open(sys.argv[1], encoding="utf-8"))
-ci_wf = yaml.safe_load(open(sys.argv[2], encoding="utf-8"))
+stub = yaml.safe_load(open(sys.argv[1]))
+ci_wf = yaml.safe_load(open(sys.argv[2]))
 # PyYAML (YAML 1.1) parses the bare key 'on' as boolean True
 on = stub.get(True) or stub.get('on') or {}
 workflows = on.get('workflow_run', {}).get('workflows', [])
@@ -67,7 +67,7 @@ PYEOF
 @test "all four trigger events are present" {
   python3 - "$STUB" <<'PYEOF'
 import yaml, sys
-wf = yaml.safe_load(open(sys.argv[1], encoding="utf-8"))
+wf = yaml.safe_load(open(sys.argv[1]))
 # PyYAML (YAML 1.1) parses the bare key 'on' as boolean True
 on = wf.get(True) or wf.get('on') or {}
 required = {
@@ -96,7 +96,7 @@ PYEOF
   # that would silently broaden the reusable's effective token.
   python3 - "$STUB" <<'PYEOF'
 import yaml, sys
-wf = yaml.safe_load(open(sys.argv[1], encoding="utf-8"))
+wf = yaml.safe_load(open(sys.argv[1]))
 job = wf.get('jobs', {}).get('pr-auto-review', {})
 perms = job.get('permissions', {}) or {}
 expected = {'pull-requests': 'read', 'checks': 'read', 'actions': 'read'}
