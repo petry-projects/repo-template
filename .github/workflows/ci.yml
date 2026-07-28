@@ -80,9 +80,9 @@ jobs:
         run: |
           tarball="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
           url="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/${tarball}"
-          # --https-only restricts redirect following to HTTPS so the fetch can
+          # --proto-redir '=https' restricts redirect following to HTTPS so the fetch can
           # never be downgraded to an insecure http:// host (githubactions:S6506).
-          wget -q --https-only "${url}" -O /tmp/gitleaks.tar.gz
+          curl -fsSL --proto-redir '=https' "${url}" -o /tmp/gitleaks.tar.gz
           echo "${GITLEAKS_CHECKSUM}  /tmp/gitleaks.tar.gz" | sha256sum -c
           tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
           sudo mv /tmp/gitleaks /usr/local/bin
