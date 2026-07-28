@@ -105,7 +105,7 @@ jobs:
   # block below (keep the job id and `name:` as `coverage` so the required check is stable).
   coverage:
     name: coverage
-    runs-on: ubuntu-22.04  # kcov dropped from Ubuntu 24.04 apt; pin until kcov ships a 24.04-compatible package
+    runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:
@@ -114,8 +114,8 @@ jobs:
 
       - name: Coverage (shell/bats via kcov)
         env:
-          KCOV_VERSION: "43"
-          KCOV_CHECKSUM: "4cbba86af11f72de0c7514e09d59c7927ed25df7cebdad087f6d3623213b95bf"
+          # SHA of the v42 tag commit in SimonKagstrom/kcov
+          KCOV_SHA: "3a8c5464be2dd781988dca7ec30db679493ed9a8"
         run: |
           shopt -s globstar nullglob
           bats_files=(tests/**/*.bats)
@@ -124,17 +124,15 @@ jobs:
             exit 0
           fi
           sudo apt-get update -qq
-          # kcov was dropped from Ubuntu 24.04 apt repos; build from source.
-          sudo apt-get install -y -qq bats cmake g++ libssl-dev libcurl4-openssl-dev libdw-dev libelf-dev zlib1g-dev
-          curl --proto '=https' --proto-redir '=https' -sSfL \
-            "https://github.com/SimonKagstrom/kcov/archive/refs/tags/v${KCOV_VERSION}.tar.gz" \
-            -o /tmp/kcov.tar.gz
-          echo "${KCOV_CHECKSUM}  /tmp/kcov.tar.gz" | sha256sum -c
-          mkdir -p /tmp/kcov-src
-          tar -xzf /tmp/kcov.tar.gz -C /tmp/kcov-src --strip-components=1
-          cmake -S /tmp/kcov-src -B /tmp/kcov-build \
-            -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local
-          cmake --build /tmp/kcov-build --parallel "$(nproc)"
+          sudo apt-get install -y -qq bats cmake binutils-dev libiberty-dev libdw-dev libcurl4-openssl-dev zlib1g-dev
+          git clone --depth 1 --branch v42 https://github.com/SimonKagstrom/kcov.git /tmp/kcov
+          actual_sha=$(git -C /tmp/kcov rev-parse HEAD)
+          if [ "${actual_sha}" != "${KCOV_SHA}" ]; then
+            echo "SHA mismatch: expected ${KCOV_SHA}, got ${actual_sha}"
+            exit 1
+          fi
+          cmake -S /tmp/kcov -B /tmp/kcov-build
+          cmake --build /tmp/kcov-build -j$(nproc)
           sudo cmake --install /tmp/kcov-build
           mkdir -p coverage
           kcov --include-path=. --exclude-path=tests,coverage coverage bats "${bats_files[@]}"
