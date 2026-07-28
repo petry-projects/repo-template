@@ -33,18 +33,31 @@ CI_WORKFLOW="${BATS_TEST_DIRNAME}/../.github/workflows/ci.yml"
 @test "workflow_run.workflows names this repo's CI workflow" {
   # The stub gates on the named CI workflow completing; that name must match the
   # `name:` of the repo's actual CI workflow. repo-template ships ci.yml as "CI".
-  grep -qE '^    workflows: \["CI"\]' "$STUB" \
-    || { echo "workflow_run.workflows is not [\"CI\"]"; return 1; }
-  grep -qE '^name: CI$' "$CI_WORKFLOW" \
-    || { echo "ci.yml is not named 'CI' — update the stub's workflows list to match"; return 1; }
+  # Parse YAML semantically so any valid representation (inline or block list) is accepted.
+  python3 - "$STUB" "$CI_WORKFLOW" <<'PYEOF'
+import yaml, sys
+stub = yaml.safe_load(open(sys.argv[1]))
+ci_wf = yaml.safe_load(open(sys.argv[2]))
+# PyYAML (YAML 1.1) parses the bare key 'on' as boolean True
+on = stub.get(True) or stub.get('on') or {}
+workflows = on.get('workflow_run', {}).get('workflows', [])
+if 'CI' not in workflows:
+    print("workflow_run.workflows does not contain 'CI'")
+    sys.exit(1)
+if ci_wf.get('name') != 'CI':
+    print("ci.yml is not named 'CI' — update the stub's workflows list to match")
+    sys.exit(1)
+PYEOF
 }
 
 @test "uses: ref is pinned to the pr-auto-review/v1-stable channel" {
-  grep -qF 'uses: petry-projects/.github/.github/workflows/pr-auto-review-reusable.yml@pr-auto-review/v1-stable' "$STUB"
+  # Match the actual `uses:` field (not comments) and anchor the end so a suffix
+  # like @pr-auto-review/v1-stable-rogue cannot slip through.
+  grep -qE '^\s+uses:\s+petry-projects/\.github/\.github/workflows/pr-auto-review-reusable\.yml@pr-auto-review/v1-stable(\s|$|#)' "$STUB"
 }
 
 @test "uses: ref is not repointed to @main, a SHA, or a frozen @vN" {
-  if grep -qE 'pr-auto-review-reusable\.yml@(main|[0-9a-f]{7,40}|v[0-9]+([[:space:]]|$))' "$STUB"; then
+  if grep -qE 'pr-auto-review-reusable\.yml@(main|[0-9a-f]{7,40}|v[0-9])' "$STUB"; then
     echo "Error: The uses: ref in $STUB is pointed to a forbidden ref (main, SHA, or frozen vN)." >&2
     echo "It must be pinned to the pr-auto-review/v1-stable channel." >&2
     return 1
@@ -53,9 +66,17 @@ CI_WORKFLOW="${BATS_TEST_DIRNAME}/../.github/workflows/ci.yml"
 
 @test "all four trigger events are present" {
   grep -qE '^  workflow_run:' "$STUB" || { echo "Missing workflow_run trigger"; return 1; }
+  grep -A2 '^  workflow_run:' "$STUB" | grep -qE 'types: \[completed\]' \
+    || { echo "workflow_run must have types: [completed]"; return 1; }
   grep -qE '^  check_suite:' "$STUB" || { echo "Missing check_suite trigger"; return 1; }
+  grep -A2 '^  check_suite:' "$STUB" | grep -qE 'types: \[completed\]' \
+    || { echo "check_suite must have types: [completed]"; return 1; }
   grep -qE '^  pull_request_review:' "$STUB" || { echo "Missing pull_request_review trigger"; return 1; }
+  grep -A2 '^  pull_request_review:' "$STUB" | grep -qE 'types: \[submitted, dismissed\]' \
+    || { echo "pull_request_review must have types: [submitted, dismissed]"; return 1; }
   grep -qE '^  pull_request:' "$STUB" || { echo "Missing pull_request trigger"; return 1; }
+  grep -A2 '^  pull_request:' "$STUB" | grep -qE 'types: \[opened, reopened, synchronize, ready_for_review\]' \
+    || { echo "pull_request must have types: [opened, reopened, synchronize, ready_for_review]"; return 1; }
 }
 
 @test "top-level permissions are locked down to {}" {
@@ -63,9 +84,19 @@ CI_WORKFLOW="${BATS_TEST_DIRNAME}/../.github/workflows/ci.yml"
 }
 
 @test "job grants exactly the read scopes the reusable needs and forwards the named secret" {
-  grep -qE '^      pull-requests: read' "$STUB" || { echo "Missing pull-requests: read permission"; return 1; }
-  grep -qE '^      checks: read' "$STUB" || { echo "Missing checks: read permission"; return 1; }
-  grep -qE '^      actions: read' "$STUB" || { echo "Missing actions: read permission"; return 1; }
+  # Parse the job permissions via YAML to reject any extra scopes (e.g. contents: write)
+  # that would silently broaden the reusable's effective token.
+  python3 - "$STUB" <<'PYEOF'
+import yaml, sys
+wf = yaml.safe_load(open(sys.argv[1]))
+job = wf.get('jobs', {}).get('pr-auto-review', {})
+perms = job.get('permissions', {}) or {}
+expected = {'pull-requests': 'read', 'checks': 'read', 'actions': 'read'}
+if perms != expected:
+    print(f"Job permissions must be exactly {expected}")
+    print(f"Got: {perms}")
+    sys.exit(1)
+PYEOF
   grep -qF 'GH_PAT_WORKFLOWS: ${{ secrets.GH_PAT_DON_PETRY || secrets.GH_PAT_WORKFLOWS }}' "$STUB" \
     || { echo "Missing GH_PAT_WORKFLOWS secret with GH_PAT_DON_PETRY fallback"; return 1; }
 }
