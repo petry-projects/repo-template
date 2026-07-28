@@ -115,6 +115,7 @@ jobs:
       - name: Coverage (shell/bats via kcov)
         env:
           KCOV_VERSION: "43"
+          KCOV_CHECKSUM: "4cbba86af11f72de0c7514e09d59c7927ed25df7cebdad087f6d3623213b95bf"
         run: |
           shopt -s globstar nullglob
           bats_files=(tests/**/*.bats)
@@ -128,6 +129,7 @@ jobs:
           curl --proto '=https' --proto-redir '=https' -sSfL \
             "https://github.com/SimonKagstrom/kcov/archive/refs/tags/v${KCOV_VERSION}.tar.gz" \
             -o /tmp/kcov.tar.gz
+          echo "${KCOV_CHECKSUM}  /tmp/kcov.tar.gz" | sha256sum -c
           mkdir -p /tmp/kcov-src
           tar -xzf /tmp/kcov.tar.gz -C /tmp/kcov-src --strip-components=1
           cmake -S /tmp/kcov-src -B /tmp/kcov-build \
