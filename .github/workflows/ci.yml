@@ -107,8 +107,8 @@ jobs:
 
       - name: Coverage (shell/bats via kcov)
         env:
-          KCOV_VERSION: "42"
-          KCOV_CHECKSUM: "78aa17a5f6d27a867cc0540b1550051591d350423a1a0ef98d63c9ce7cc10f9d"
+          # SHA of the v42 tag commit in SimonKagstrom/kcov
+          KCOV_SHA: "3a8c5464be2dd781988dca7ec30db679493ed9a8"
         run: |
           shopt -s globstar nullglob
           bats_files=(tests/**/*.bats)
@@ -117,12 +117,16 @@ jobs:
             exit 0
           fi
           sudo apt-get update -qq
-          sudo apt-get install -y -qq bats binutils-dev libiberty-dev
-          curl -fsSL --proto '=https' --proto-redir '=https' \
-            "https://github.com/SimonKagstrom/kcov/releases/download/v${KCOV_VERSION}/kcov-amd64.tar.gz" \
-            -o /tmp/kcov-amd64.tar.gz
-          echo "${KCOV_CHECKSUM}  /tmp/kcov-amd64.tar.gz" | sha256sum -c
-          sudo tar -xzf /tmp/kcov-amd64.tar.gz -C /
+          sudo apt-get install -y -qq bats cmake binutils-dev libiberty-dev libdw-dev libcurl4-openssl-dev zlib1g-dev
+          git clone --depth 1 --branch v42 https://github.com/SimonKagstrom/kcov.git /tmp/kcov
+          actual_sha=$(git -C /tmp/kcov rev-parse HEAD)
+          if [ "${actual_sha}" != "${KCOV_SHA}" ]; then
+            echo "SHA mismatch: expected ${KCOV_SHA}, got ${actual_sha}"
+            exit 1
+          fi
+          cmake -S /tmp/kcov -B /tmp/kcov-build
+          cmake --build /tmp/kcov-build -j$(nproc)
+          sudo cmake --install /tmp/kcov-build
           mkdir -p coverage
           kcov --include-path=. --exclude-path=tests,coverage coverage bats "${bats_files[@]}"
           echo "Coverage report written to ./coverage"
