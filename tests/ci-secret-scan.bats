@@ -34,7 +34,6 @@ GITLEAKS_TOML="${BATS_TEST_DIRNAME}/../.gitleaks.toml"
   grep -qE "curl.*--proto-redir '=https'.*gitleaks\.tar\.gz" "$CI_YML"
 }
 
-
 @test ".gitleaks.toml config exists at the repo root" {
   [ -f "$GITLEAKS_TOML" ]
 }
