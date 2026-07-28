@@ -35,6 +35,7 @@ GITLEAKS_TOML="${BATS_TEST_DIRNAME}/../.gitleaks.toml"
 }
 
 
+
 @test ".gitleaks.toml config exists at the repo root" {
   [ -f "$GITLEAKS_TOML" ]
 }
