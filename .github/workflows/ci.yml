@@ -105,7 +105,7 @@ jobs:
   # block below (keep the job id and `name:` as `coverage` so the required check is stable).
   coverage:
     name: coverage
-    runs-on: ubuntu-22.04  # kcov dropped from Ubuntu 24.04 apt; pin until kcov ships a 24.04-compatible package
+    runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:
@@ -116,8 +116,8 @@ jobs:
 
       - name: Coverage (shell/bats via kcov)
         env:
-          KCOV_VERSION: "43"
-          KCOV_CHECKSUM: "4cbba86af11f72de0c7514e09d59c7927ed25df7cebdad087f6d3623213b95bf"
+          # SHA of the v42 tag commit in SimonKagstrom/kcov
+          KCOV_SHA: "3a8c5464be2dd781988dca7ec30db679493ed9a8"
         run: |
           shopt -s globstar nullglob
           bats_files=(tests/**/*.bats)
