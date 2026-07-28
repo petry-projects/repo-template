@@ -117,7 +117,7 @@ jobs:
             exit 0
           fi
           sudo apt-get update -qq
-          sudo apt-get install -y -qq bats
+          sudo apt-get install -y -qq bats binutils-dev libiberty-dev
           curl -fsSL --proto '=https' --proto-redir '=https' \
             "https://github.com/SimonKagstrom/kcov/releases/download/v${KCOV_VERSION}/kcov-amd64.tar.gz" \
             -o /tmp/kcov-amd64.tar.gz
