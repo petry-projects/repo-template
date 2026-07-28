@@ -11,5 +11,5 @@ dist/
 build/
 coverage/
 
-# Logs / env
+# Logs
 *.log
