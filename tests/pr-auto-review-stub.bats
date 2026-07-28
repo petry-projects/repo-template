@@ -41,7 +41,7 @@ ci_wf = yaml.safe_load(open(sys.argv[2]))
 # PyYAML (YAML 1.1) parses the bare key 'on' as boolean True
 on = stub.get(True) or stub.get('on') or {}
 workflows = on.get('workflow_run', {}).get('workflows', [])
-if 'CI' not in workflows:
+if workflows != ['CI']:
     print("workflow_run.workflows does not contain 'CI'")
     sys.exit(1)
 if ci_wf.get('name') != 'CI':
@@ -65,18 +65,26 @@ PYEOF
 }
 
 @test "all four trigger events are present" {
-  grep -qE '^  workflow_run:' "$STUB" || { echo "Missing workflow_run trigger"; return 1; }
-  grep -A2 '^  workflow_run:' "$STUB" | grep -qE 'types: \[completed\]' \
-    || { echo "workflow_run must have types: [completed]"; return 1; }
-  grep -qE '^  check_suite:' "$STUB" || { echo "Missing check_suite trigger"; return 1; }
-  grep -A2 '^  check_suite:' "$STUB" | grep -qE 'types: \[completed\]' \
-    || { echo "check_suite must have types: [completed]"; return 1; }
-  grep -qE '^  pull_request_review:' "$STUB" || { echo "Missing pull_request_review trigger"; return 1; }
-  grep -A2 '^  pull_request_review:' "$STUB" | grep -qE 'types: \[submitted, dismissed\]' \
-    || { echo "pull_request_review must have types: [submitted, dismissed]"; return 1; }
-  grep -qE '^  pull_request:' "$STUB" || { echo "Missing pull_request trigger"; return 1; }
-  grep -A2 '^  pull_request:' "$STUB" | grep -qE 'types: \[opened, reopened, synchronize, ready_for_review\]' \
-    || { echo "pull_request must have types: [opened, reopened, synchronize, ready_for_review]"; return 1; }
+  python3 - "$STUB" <<'PYEOF'
+import yaml, sys
+wf = yaml.safe_load(open(sys.argv[1]))
+# PyYAML (YAML 1.1) parses the bare key 'on' as boolean True
+on = wf.get(True) or wf.get('on') or {}
+required = {
+    'workflow_run':        {'completed'},
+    'check_suite':         {'completed'},
+    'pull_request_review': {'submitted', 'dismissed'},
+    'pull_request':        {'opened', 'reopened', 'synchronize', 'ready_for_review'},
+}
+for event, expected_types in required.items():
+    if event not in on:
+        print(f"Missing trigger event: {event}")
+        sys.exit(1)
+    actual = set((on[event] or {}).get('types', []))
+    if actual != expected_types:
+        print(f"{event} types must be exactly {sorted(expected_types)}, got {sorted(actual)}")
+        sys.exit(1)
+PYEOF
 }
 
 @test "top-level permissions are locked down to {}" {
@@ -96,7 +104,10 @@ if perms != expected:
     print(f"Job permissions must be exactly {expected}")
     print(f"Got: {perms}")
     sys.exit(1)
+secrets = job.get('secrets', {}) or {}
+expected_secret = '${{ secrets.GH_PAT_DON_PETRY || secrets.GH_PAT_WORKFLOWS }}'
+if secrets.get('GH_PAT_WORKFLOWS') != expected_secret:
+    print("GH_PAT_WORKFLOWS secret forwarding is incorrect")
+    sys.exit(1)
 PYEOF
-  grep -qF 'GH_PAT_WORKFLOWS: ${{ secrets.GH_PAT_DON_PETRY || secrets.GH_PAT_WORKFLOWS }}' "$STUB" \
-    || { echo "Missing GH_PAT_WORKFLOWS secret with GH_PAT_DON_PETRY fallback"; return 1; }
 }
