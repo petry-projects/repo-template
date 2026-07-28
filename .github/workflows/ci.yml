@@ -125,8 +125,9 @@ jobs:
           sudo apt-get update -qq
           # kcov was dropped from Ubuntu 24.04 apt repos; build from source.
           sudo apt-get install -y -qq bats cmake g++ libcurl4-openssl-dev libdw-dev libelf-dev zlib1g-dev
-          wget -q "https://github.com/SimonKagstrom/kcov/archive/refs/tags/v${KCOV_VERSION}.tar.gz" \
-            -O /tmp/kcov.tar.gz
+          curl --proto '=https' --proto-redir '=https' -sSfL \
+            "https://github.com/SimonKagstrom/kcov/archive/refs/tags/v${KCOV_VERSION}.tar.gz" \
+            -o /tmp/kcov.tar.gz
           mkdir -p /tmp/kcov-src
           tar -xzf /tmp/kcov.tar.gz -C /tmp/kcov-src --strip-components=1
           cmake -S /tmp/kcov-src -B /tmp/kcov-build \
