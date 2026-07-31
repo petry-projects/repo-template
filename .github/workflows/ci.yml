@@ -43,7 +43,7 @@ jobs:
       contents: read
     steps:
       - name: Checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       # ── Replace the step below with your stack's checks ───────────────────────
       # Standard CI stages: lint, format check, type check, unit tests, coverage
@@ -67,7 +67,7 @@ jobs:
       contents: read
     steps:
       - name: Checkout (full history)
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
 
@@ -103,12 +103,9 @@ jobs:
       contents: read
     steps:
       - name: Checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Coverage (shell/bats via kcov)
-        env:
-          # SHA of the v42 tag commit in SimonKagstrom/kcov
-          KCOV_SHA: "3a8c5464be2dd781988dca7ec30db679493ed9a8"
         run: |
           set -e
           shopt -s globstar nullglob
@@ -118,16 +115,7 @@ jobs:
             exit 0
           fi
           sudo apt-get update -qq
-          sudo apt-get install -y -qq bats cmake binutils-dev libiberty-dev libdw-dev libcurl4-openssl-dev zlib1g-dev
-          git clone --depth 1 --branch v42 https://github.com/SimonKagstrom/kcov.git /tmp/kcov
-          actual_sha=$(git -C /tmp/kcov rev-parse HEAD)
-          if [ "${actual_sha}" != "${KCOV_SHA}" ]; then
-            echo "SHA mismatch: expected ${KCOV_SHA}, got ${actual_sha}"
-            exit 1
-          fi
-          cmake -S /tmp/kcov -B /tmp/kcov-build
-          cmake --build /tmp/kcov-build -j$(nproc)
-          sudo cmake --install /tmp/kcov-build
+          sudo apt-get install -y -qq bats kcov
           mkdir -p coverage
           kcov --include-path=. --exclude-path=tests,coverage coverage bats "${bats_files[@]}"
           echo "Coverage report written to ./coverage"
