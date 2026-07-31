@@ -112,7 +112,10 @@ jobs:
             exit 0
           fi
           sudo apt-get update -qq
-          sudo apt-get install -y -qq bats kcov
+          sudo apt-get install -y -qq bats
+          # kcov is not in default Ubuntu repos; skip coverage for shell/bats until a real stack is implemented.
+          # Replace this section with your stack's coverage tool (Node: jest, Go: go test, Python: pytest, Rust: cargo llvm-cov).
+          echo "Running bats tests without coverage (kcov not available for shell/bats in GitHub Actions)."
           mkdir -p coverage
           # kcov was dropped from Ubuntu 22.04+ apt repos; fall back to plain bats
           # so the required check stays green on ubuntu-latest (24.04) runners.
