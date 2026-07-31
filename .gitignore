@@ -409,5 +409,7 @@ dist/
 build/
 coverage/
 
-# Logs
+# Logs / env
 *.log
+.env
+.env.*
