@@ -56,6 +56,13 @@ jobs:
       - name: Placeholder — replace with real build/test steps
         run: echo "CI stub — add your stack's lint/format/typecheck/test/coverage steps; see BOOTSTRAP.md."
 
+
+      - name: Install bats
+        run: sudo apt-get install -y bats
+
+      - name: Run compliance regression tests
+        run: bats tests/ci-secret-scan.bats
+
   # Canonical secret-scan job — copied verbatim from push-protection.md#required-ci-job.
   # Produces the `Secret scan (gitleaks)` required check. Uses the gitleaks CLI (not
   # gitleaks/gitleaks-action, whose v2+ needs a paid org license); fully pinned +
@@ -113,9 +120,8 @@ jobs:
           fi
           sudo apt-get update -qq
           sudo apt-get install -y -qq bats
-          # kcov is not in default Ubuntu repos; skip coverage for shell/bats until a real stack is implemented.
-          # Replace this section with your stack's coverage tool (Node: jest, Go: go test, Python: pytest, Rust: cargo llvm-cov).
-          echo "Running bats tests without coverage (kcov not available for shell/bats in GitHub Actions)."
+
+          # Attempt to install kcov; continue if unavailable (it's not in all distro package repos)
           mkdir -p coverage
           # kcov was dropped from Ubuntu 22.04+ apt repos; fall back to plain bats
           # so the required check stays green on ubuntu-latest (24.04) runners.
