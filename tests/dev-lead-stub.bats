@@ -1,3 +1,36 @@
+#!/usr/bin/env bats
+# Drift & compliance regression guard for the dev-lead thin caller stub.
+#
+# .github/workflows/dev-lead.yml is copied VERBATIM from the canonical org
+# template (petry-projects/.github → standards/workflows/dev-lead.yml) and must
+# stay byte-identical across every adopting repo, modulo the per-repo channel/ring
+# pin on the `uses:` ref and its MATCHING `agent_ref`. Any other diff is drift —
+# the silent-revert class of failure the fleet stub-drift monitor exists to catch
+# (fleet_stub_drift.sh).
+#
+# This guard specifically pins the compliance-audit `dev-lead-stub-agent-ref`
+# invariant (ci-standards.md → dev-lead-agent): the stub MUST pass
+# `with: agent_ref: dev-lead/v<M>-<channel>` — a MAJOR-SCOPED channel tag
+# (e.g. dev-lead/v1-stable), not the unversioned `dev-lead/stable` — so the
+# reusable checks out its own scripts/prompts from the same major-scoped channel
+# as the `uses:` ref. The bare `dev-lead/stable` form is a compliance failure.
+
+STUB="${BATS_TEST_DIRNAME}/../.github/workflows/dev-lead.yml"
+
+@test "dev-lead stub exists" {
+  [ -f "$STUB" ]
+}
+
+@test "dev-lead stub is byte-identical to the canonical template" {
+  # Inline canonical snapshot — update this heredoc whenever the central template
+  # (petry-projects/.github/standards/workflows/dev-lead.yml) changes.
+  local canon
+  canon="$(mktemp)"
+  # The canonical template ends with a single trailing newline, so reconstruct it
+  # with printf '%s\n' (command substitution strips the heredoc's trailing newline,
+  # which printf then restores) to stay byte-faithful to the committed stub the
+  # fleet stub-drift monitor compares SHAs against.
+  printf '%s\n' "$(cat << 'CANONICAL'
 # ─────────────────────────────────────────────────────────────────────────────
 # Dev-Lead Agent — thin caller stub
 # Standard:  petry-projects/.github/standards/ci-standards.md#5-dev-lead-agent
@@ -72,3 +105,48 @@ jobs:
       actions: read
       checks: read
       statuses: read
+CANONICAL
+)" > "$canon"
+  run diff -u "$canon" "$STUB"
+  rm -f "$canon"
+  [ "$status" -eq 0 ] || {
+    echo "stub drifted from canonical:"
+    echo "$output"
+    return 1
+  }
+}
+
+@test "with: agent_ref is pinned to the major-scoped dev-lead/v1-stable channel (dev-lead-stub-agent-ref)" {
+  # The compliance check requires the dev-lead/v<M>-<channel> form. Anchor the end
+  # so a suffix like dev-lead/v1-stable-rogue cannot slip through.
+  grep -qE '^\s+agent_ref:\s+dev-lead/v1-stable(\s|$|#)' "$STUB" || {
+    echo "agent_ref must be the major-scoped channel 'dev-lead/v1-stable', not the unversioned 'dev-lead/stable'." >&2
+    return 1
+  }
+}
+
+@test "with: agent_ref is not the unversioned dev-lead/stable form" {
+  if grep -qE '^\s+agent_ref:\s+dev-lead/(stable|next)(\s|$|#)' "$STUB"; then
+    echo "Error: agent_ref is the unversioned dev-lead/<channel> form — it must carry the v<M> major scope (e.g. dev-lead/v1-stable)." >&2
+    return 1
+  fi
+}
+
+@test "uses: ref is pinned to the dev-lead/v1-stable channel and matches agent_ref" {
+  grep -qE '^\s+uses:\s+petry-projects/\.github-private/\.github/workflows/dev-lead-reusable\.yml@dev-lead/v1-stable(\s|$|#)' "$STUB" || {
+    echo "uses: ref must be pinned to the major-scoped dev-lead/v1-stable channel." >&2
+    return 1
+  }
+}
+
+@test "uses: ref is not repointed to the unversioned channel, @main, a SHA, or a frozen @vN" {
+  if grep -qE 'dev-lead-reusable\.yml@(main|[0-9a-f]{7,40}|dev-lead/v[0-9]+$|dev-lead/(stable|next)(\s|$|#))' "$STUB"; then
+    echo "Error: The uses: ref in $STUB is pointed to a forbidden ref (main, SHA, frozen vN, or unversioned channel)." >&2
+    echo "It must be pinned to the dev-lead/v1-stable channel." >&2
+    return 1
+  fi
+}
+
+@test "top-level permissions are locked down to {}" {
+  grep -q '^permissions: {}' "$STUB" || { echo "Top-level permissions are not locked down to {}"; return 1; }
+}
