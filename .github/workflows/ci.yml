@@ -112,9 +112,12 @@ jobs:
             exit 0
           fi
           sudo apt-get update -qq
-          sudo apt-get install -y -qq bats
-          # kcov was removed from Ubuntu 24.04 apt; install from the snap store
-          sudo snap install kcov
+          sudo apt-get install -y -qq bats cmake g++ libelf-dev pkg-config
+          # kcov was removed from Ubuntu 24.04 apt; build from source (snap not available in GH Actions)
+          git clone --depth=1 https://github.com/SimonKagstrom/kcov.git /tmp/kcov-src
+          cmake -B /tmp/kcov-build /tmp/kcov-src -DCMAKE_BUILD_TYPE=Release
+          cmake --build /tmp/kcov-build -j$(nproc)
+          sudo cmake --install /tmp/kcov-build
           mkdir -p coverage
           kcov --include-path=. --exclude-path=tests,coverage coverage bats "${bats_files[@]}"
           echo "Coverage report written to ./coverage"
