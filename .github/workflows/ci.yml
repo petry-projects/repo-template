@@ -80,7 +80,7 @@ jobs:
         run: |
           tarball="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
           url="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/${tarball}"
-          curl -fsSL --proto-redir '=https' "${url}" -o /tmp/gitleaks.tar.gz
+          curl -fsSL --proto '=https' --proto-redir '=https' "${url}" -o /tmp/gitleaks.tar.gz
           echo "${GITLEAKS_CHECKSUM}  /tmp/gitleaks.tar.gz" | sha256sum -c
           tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
           sudo mv /tmp/gitleaks /usr/local/bin
@@ -112,7 +112,7 @@ jobs:
             exit 0
           fi
           sudo apt-get update -qq
-          sudo apt-get install -y -qq bats cmake g++ libelf-dev pkg-config
+          sudo apt-get install -y -qq bats cmake g++ libelf-dev libdw-dev pkg-config
           # kcov was removed from Ubuntu 24.04 apt; build from source (snap not available in GH Actions)
           git clone --depth=1 https://github.com/SimonKagstrom/kcov.git /tmp/kcov-src
           cmake -B /tmp/kcov-build /tmp/kcov-src -DCMAKE_BUILD_TYPE=Release
