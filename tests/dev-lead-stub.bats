@@ -149,7 +149,7 @@ CANONICAL
 }
 
 @test "uses: ref is not repointed to the unversioned channel, @main, a SHA, or a frozen @vN" {
-  if grep -qE 'dev-lead-reusable\.yml@(main|[0-9a-f]{7,40}|dev-lead/v[0-9]+([[:space:]]|$|#)|dev-lead/(stable|next)([[:space:]]|$|#))' "$STUB"; then
+  if grep -qE 'dev-lead-reusable\.yml@(main|[0-9a-f]{7,40}|dev-lead/v[0-9]+|dev-lead/(stable|next))([[:space:]]|#|$)' "$STUB"; then
     echo "Error: The uses: ref in $STUB is pointed to a forbidden ref (main, SHA, frozen vN, or unversioned channel)." >&2
     echo "It must be pinned to the dev-lead/v1-stable channel." >&2
     return 1
