@@ -96,7 +96,7 @@ CANONICAL
 }
 
 @test "uses: ref is not repointed to @main, a SHA, or a frozen @vN" {
-  if grep -qE 'dependabot-automerge-reusable\.yml@(main([^a-z0-9-]|$)|[0-9a-f]{7,40}([^a-z0-9-]|$)|v[0-9]+([^a-z-]|$))' "$STUB"; then
+  if grep -qE 'dependabot-automerge-reusable\.yml@(main[^a-z0-9-]|[0-9a-f]{7,40}[^a-z0-9-]|v[0-9]+[^a-z-])' "$STUB"; then
     echo "Error: The uses: ref in $STUB is pointed to a forbidden ref (main, SHA, or frozen vN)." >&2
     echo "It must be pinned to the dependabot-automerge/v2-stable channel." >&2
     return 1
