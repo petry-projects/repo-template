@@ -114,9 +114,7 @@ jobs:
             exit 0
           fi
           sudo apt-get update -qq
-          sudo apt-get install -y -qq bats
-          sudo snap install kcov
-          export PATH="/snap/bin:$PATH"
+          sudo apt-get install -y -qq bats kcov
           mkdir -p coverage
           kcov --include-path=. --exclude-path=tests,coverage coverage bats "${bats_files[@]}"
           echo "Coverage report written to ./coverage"
