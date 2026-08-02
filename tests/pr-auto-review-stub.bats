@@ -64,6 +64,34 @@ PYEOF
   fi
 }
 
+@test "job skips secret-less Dependabot pull_request events" {
+  # Dependabot `pull_request` events run with a read-only token and NO access to
+  # org secrets, so `secrets.GH_PAT_DON_PETRY || secrets.GH_PAT_WORKFLOWS`
+  # resolves empty, the reusable's GH_TOKEN is blank, and every gh call exits 4
+  # (the sole failure mode behind fleet-monitor issue #121). Readiness for those
+  # PRs is still evaluated on the secret-bearing workflow_run / check_suite events,
+  # so the job MUST carry an `if:` guard that skips Dependabot pull_request runs
+  # (yielding a `skipped` — not `failure` — conclusion). The guard must be scoped
+  # to the pull_request event so workflow_run / check_suite runs (whose actor can
+  # also be dependabot[bot]) still execute.
+  python3 - "$STUB" <<'PYEOF'
+import yaml, sys
+wf = yaml.safe_load(open(sys.argv[1]))
+job = wf.get('jobs', {}).get('pr-auto-review', {})
+cond = job.get('if')
+if not cond:
+    print("job pr-auto-review has no `if:` guard — Dependabot pull_request runs will fail")
+    sys.exit(1)
+cond = str(cond)
+if 'dependabot[bot]' not in cond:
+    print(f"`if:` guard does not reference dependabot[bot]: {cond!r}")
+    sys.exit(1)
+if 'pull_request' not in cond:
+    print(f"`if:` guard is not scoped to the pull_request event: {cond!r}")
+    sys.exit(1)
+PYEOF
+}
+
 @test "all four trigger events are present" {
   python3 - "$STUB" <<'PYEOF'
 import yaml, sys
