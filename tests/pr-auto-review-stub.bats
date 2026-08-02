@@ -36,8 +36,10 @@ CI_WORKFLOW="${BATS_TEST_DIRNAME}/../.github/workflows/ci.yml"
   # Parse YAML semantically so any valid representation (inline or block list) is accepted.
   python3 - "$STUB" "$CI_WORKFLOW" <<'PYEOF'
 import yaml, sys
-stub = yaml.safe_load(open(sys.argv[1]))
-ci_wf = yaml.safe_load(open(sys.argv[2]))
+with open(sys.argv[1], encoding='utf-8') as f:
+    stub = yaml.safe_load(f)
+with open(sys.argv[2], encoding='utf-8') as f:
+    ci_wf = yaml.safe_load(f)
 # PyYAML (YAML 1.1) parses the bare key 'on' as boolean True
 on = stub.get(True) or stub.get('on') or {}
 workflows = on.get('workflow_run', {}).get('workflows', [])
@@ -75,19 +77,27 @@ PYEOF
   # to the pull_request event so workflow_run / check_suite runs (whose actor can
   # also be dependabot[bot]) still execute.
   python3 - "$STUB" <<'PYEOF'
-import yaml, sys
-wf = yaml.safe_load(open(sys.argv[1]))
+import re, yaml, sys
+with open(sys.argv[1], encoding='utf-8') as f:
+    wf = yaml.safe_load(f)
 job = wf.get('jobs', {}).get('pr-auto-review', {})
 cond = job.get('if')
 if not cond:
     print("job pr-auto-review has no `if:` guard — Dependabot pull_request runs will fail")
     sys.exit(1)
 cond = str(cond)
-if 'dependabot[bot]' not in cond:
-    print(f"`if:` guard does not reference dependabot[bot]: {cond!r}")
+# Require !=  (not ==) so a reversed guard does not pass: anchors to 'pull_request' with
+# surrounding quotes so 'pull_request_review' (still containing the substring) cannot slip through.
+if not re.search(r"github\.event_name\s*!=\s*['\"]pull_request['\"]", cond):
+    print(f"`if:` guard must use github.event_name != 'pull_request': {cond!r}")
     sys.exit(1)
-if 'pull_request' not in cond:
-    print(f"`if:` guard is not scoped to the pull_request event: {cond!r}")
+# Require !=  so a guard that skips all PRs (== dependabot) cannot satisfy this check.
+if not re.search(r"github\.actor\s*!=\s*['\"]dependabot\[bot\]['\"]", cond):
+    print(f"`if:` guard must use github.actor != 'dependabot[bot]': {cond!r}")
+    sys.exit(1)
+# Require || (OR) so normal pull_request runs are never skipped by an AND guard.
+if '||' not in cond:
+    print(f"`if:` guard must use || so normal pull_request runs still execute: {cond!r}")
     sys.exit(1)
 PYEOF
 }
@@ -95,7 +105,8 @@ PYEOF
 @test "all four trigger events are present" {
   python3 - "$STUB" <<'PYEOF'
 import yaml, sys
-wf = yaml.safe_load(open(sys.argv[1]))
+with open(sys.argv[1], encoding='utf-8') as f:
+    wf = yaml.safe_load(f)
 # PyYAML (YAML 1.1) parses the bare key 'on' as boolean True
 on = wf.get(True) or wf.get('on') or {}
 required = {
@@ -124,7 +135,8 @@ PYEOF
   # that would silently broaden the reusable's effective token.
   python3 - "$STUB" <<'PYEOF'
 import yaml, sys
-wf = yaml.safe_load(open(sys.argv[1]))
+with open(sys.argv[1], encoding='utf-8') as f:
+    wf = yaml.safe_load(f)
 job = wf.get('jobs', {}).get('pr-auto-review', {})
 perms = job.get('permissions', {}) or {}
 expected = {'pull-requests': 'read', 'checks': 'read', 'actions': 'read'}

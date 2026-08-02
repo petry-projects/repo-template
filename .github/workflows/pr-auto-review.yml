@@ -53,7 +53,7 @@ jobs:
     # it yields a `skipped`, not `failure`, conclusion. Scoped to the pull_request
     # event so workflow_run / check_suite runs (whose actor may also be dependabot[bot])
     # still execute. Mirrors the secret-availability guard in copilot-setup-steps.yml.
-    if: github.event_name != 'pull_request' || github.actor != 'dependabot[bot]'
+    if: github.event_name != 'pull_request' || github.actor != 'dependabot[bot]'  # NOSONAR — availability guard, not a security gate; worst case is a skipped run, not a privilege grant
     permissions:
       pull-requests: read
       checks: read
