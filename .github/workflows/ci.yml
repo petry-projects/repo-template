@@ -80,7 +80,7 @@ jobs:
         run: |
           tarball="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
           url="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/${tarball}"
-          curl -fsSL --proto-redir '=https' "${url}" -o /tmp/gitleaks.tar.gz
+          curl -fsSL --proto '=https' --proto-redir '=https' "${url}" -o /tmp/gitleaks.tar.gz
           echo "${GITLEAKS_CHECKSUM}  /tmp/gitleaks.tar.gz" | sha256sum -c
           tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
           sudo mv /tmp/gitleaks /usr/local/bin
@@ -104,9 +104,6 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Coverage (shell/bats via kcov)
-        env:
-          KCOV_VERSION: "42"
-          KCOV_CHECKSUM: "78aa17a5f6d27a867cc0540b1550051591d350423a1a0ef98d63c9ce7cc10f9d"
         run: |
           shopt -s globstar nullglob
           bats_files=(tests/**/*.bats)
@@ -115,12 +112,7 @@ jobs:
             exit 0
           fi
           sudo apt-get update -qq
-          sudo apt-get install -y -qq bats
-          tarball="kcov-amd64.tar.gz"
-          url="https://github.com/SimonKagstrom/kcov/releases/download/v${KCOV_VERSION}/${tarball}"
-          wget -q "${url}" -O /tmp/kcov.tar.gz
-          echo "${KCOV_CHECKSUM}  /tmp/kcov.tar.gz" | sha256sum -c
-          sudo tar -xzf /tmp/kcov.tar.gz -C /
+          sudo apt-get install -y -qq bats kcov
           mkdir -p coverage
           kcov --include-path=. --exclude-path=tests,coverage coverage bats "${bats_files[@]}"
           echo "Coverage report written to ./coverage"
