@@ -7,10 +7,14 @@
 # tracked files — but the checks they require are USELESS unless this repo's
 # workflows produce them under EXACTLY those context names. The standard warns:
 # "a misnamed context permanently blocks PRs without producing the actual
-# analysis." This guard pins the workflow contexts to the four required checks:
+# analysis." This guard pins the three workflow contexts this suite can enforce.
+# CodeQL (check #2) is GitHub's built-in default-setup analysis — no workflow
+# file exists in this repo for it. It is out-of-band and cannot be asserted
+# here; its required-check entry is managed separately out-of-band:
 #
 #   1. SonarCloud                          — sonarcloud.yml   (job `name:`)
-#   2. CodeQL                              — GitHub default setup (no workflow file)
+#   2. CodeQL                              — GitHub default setup (no workflow file;
+#                                            out-of-band — not verifiable by this suite)
 #   3. agent-shield / AgentShield          — agent-shield.yml  (job id / reusable job)
 #   4. dependency-audit / Detect ecosystems — dependency-audit.yml (job id / reusable job)
 
@@ -45,6 +49,10 @@ DEP_AUDIT_YML="${WORKFLOWS}/dependency-audit.yml"
   grep -qF 'agent-shield-reusable.yml@agent-shield/stable' "$AGENT_SHIELD_YML"
 }
 
+@test "agent-shield.yml caller job must not set name: (job-level name overrides job-id as the required check context prefix)" {
+  ! grep -qE '^    name:' "$AGENT_SHIELD_YML"
+}
+
 @test "agent-shield.yml runs on pull_request (else the required check never reports)" {
   grep -qE '^[[:space:]]+pull_request:[[:space:]]*$' "$AGENT_SHIELD_YML"
 }
@@ -60,6 +68,10 @@ DEP_AUDIT_YML="${WORKFLOWS}/dependency-audit.yml"
 
 @test "dependency-audit.yml calls the dependency-audit reusable (produces 'Detect ecosystems' job)" {
   grep -qF 'dependency-audit-reusable.yml@dependency-audit/stable' "$DEP_AUDIT_YML"
+}
+
+@test "dependency-audit.yml caller job must not set name: (job-level name overrides job-id as the required check context prefix)" {
+  ! grep -qE '^    name:' "$DEP_AUDIT_YML"
 }
 
 @test "dependency-audit.yml runs on pull_request (else the required check never reports)" {
