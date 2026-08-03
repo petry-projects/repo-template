@@ -163,3 +163,13 @@ CANONICAL
 @test "top-level permissions are locked down to {}" {
   grep -q '^permissions: {}' "$STUB" || { echo "Top-level permissions are not locked down to {}"; return 1; }
 }
+
+@test "core trigger events are present" {
+  grep -qE '^  pull_request:' "$STUB" || { echo "Missing pull_request trigger"; return 1; }
+  grep -qE '^  pull_request_review:' "$STUB" || { echo "Missing pull_request_review trigger"; return 1; }
+  grep -qE '^  pull_request_review_comment:' "$STUB" || { echo "Missing pull_request_review_comment trigger"; return 1; }
+  grep -qE '^  issue_comment:' "$STUB" || { echo "Missing issue_comment trigger"; return 1; }
+  grep -qE '^  issues:' "$STUB" || { echo "Missing issues trigger"; return 1; }
+  grep -qE '^  check_run:' "$STUB" || { echo "Missing check_run trigger"; return 1; }
+  grep -qE '^  repository_dispatch:' "$STUB" || { echo "Missing repository_dispatch trigger"; return 1; }
+}
