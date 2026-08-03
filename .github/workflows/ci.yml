@@ -63,7 +63,7 @@ jobs:
         run: sudo apt-get install -y bats
 
       - name: Run compliance regression tests
-        run: bats tests/ci-secret-scan.bats
+        run: bats tests/ci-secret-scan.bats tests/dev-lead-stub.bats
 
   # Canonical secret-scan job — copied verbatim from push-protection.md#required-ci-job.
   # Produces the `Secret scan (gitleaks)` required check. Uses the gitleaks CLI (not
@@ -142,7 +142,7 @@ jobs:
       #    Node:   npx jest --coverage
       #    Go:     go test ./... -coverprofile=coverage.out && go tool cover -func=coverage.out
       #    Python: pytest --cov
-      #    Rust:   cargo llvm-cov --workspac─
+      #    Rust:   cargo llvm-cov --workspace
 # SOURCE OF TRUTH: petry-projects/.github/standards/workflows/ci.yml
 # Standard:        petry-projects/.github/standards/ci-standards.md#1-ci-pipeline-ciyml
 #
@@ -205,7 +205,7 @@ jobs:
         run: sudo apt-get install -y bats
 
       - name: Run compliance regression tests
-        run: bats tests/ci-secret-scan.bats
+        run: bats tests/ci-secret-scan.bats tests/dev-lead-stub.bats
 
   # Canonical secret-scan job — copied verbatim from push-protection.md#required-ci-job.
   # Produces the `Secret scan (gitleaks)` required check. Uses the gitleaks CLI (not

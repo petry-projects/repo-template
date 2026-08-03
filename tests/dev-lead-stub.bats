@@ -118,8 +118,8 @@ jobs:
       statuses: read
 CANONICAL
 )" | sed "s|dev-lead/v1-stable|${channel}|g" > "$canon"
-  sed -E 's#dev-lead/v[0-9]+-(stable|next|ring[0-9]+)#dev-lead/vX-CHANNEL#g' "$canon" > "$canon_norm"
-  sed -E 's#dev-lead/v[0-9]+-(stable|next|ring[0-9]+)#dev-lead/vX-CHANNEL#g' "$STUB" > "$stub_norm"
+  sed -E 's#(dev-lead/v[0-9]+-(stable|next|ring[0-9]+))([[:space:]]|$)#dev-lead/vX-CHANNEL\3#g' "$canon" > "$canon_norm"
+  sed -E 's#(dev-lead/v[0-9]+-(stable|next|ring[0-9]+))([[:space:]]|$)#dev-lead/vX-CHANNEL\3#g' "$STUB" > "$stub_norm"
   run diff -u "$canon_norm" "$stub_norm"
   rm -f "$canon" "$canon_norm" "$stub_norm"
   [ "$status" -eq 0 ] || {
@@ -132,7 +132,7 @@ CANONICAL
 @test "with: agent_ref is pinned to the major-scoped dev-lead/v1-stable channel (dev-lead-stub-agent-ref)" {
   # The compliance check requires the dev-lead/v<M>-<channel> form. Anchor the end
   # so a suffix like dev-lead/v1-stable-rogue cannot slip through.
-  grep -qE '^[[:space:]]+agent_ref:[[:space:]]+dev-lead/v1-stable([[:space:]]|$|#)' "$STUB" || {
+  grep -qE '^[[:space:]]+agent_ref:[[:space:]]+dev-lead/v1-stable([[:space:]]|$)' "$STUB" || {
     echo "agent_ref must be the major-scoped channel 'dev-lead/v1-stable', not the unversioned 'dev-lead/stable'." >&2
     return 1
   }
@@ -146,14 +146,14 @@ CANONICAL
 }
 
 @test "uses: ref is pinned to the dev-lead/v1-stable channel and matches agent_ref" {
-  grep -qE '^[[:space:]]+uses:[[:space:]]+petry-projects/\.github-private/\.github/workflows/dev-lead-reusable\.yml@dev-lead/v1-stable([[:space:]]|$|#)' "$STUB" || {
+  grep -qE '^[[:space:]]+uses:[[:space:]]+petry-projects/\.github-private/\.github/workflows/dev-lead-reusable\.yml@dev-lead/v1-stable([[:space:]]|$)' "$STUB" || {
     echo "uses: ref must be pinned to the major-scoped dev-lead/v1-stable channel." >&2
     return 1
   }
 }
 
 @test "uses: ref is not repointed to the unversioned channel, @main, a SHA, or a frozen @vN" {
-  if grep -qE 'dev-lead-reusable\.yml@(main|[0-9a-f]{7,40}|v[0-9]+|dev-lead/(stable|next))(\s|$|#)' "$STUB"; then
+  if grep -qE 'dev-lead-reusable\.yml@(main|[0-9a-f]{7,40}|v[0-9]+|dev-lead/(stable|next|ring[0-9]+)|dev-lead/v[0-9]+)(\s|$)' "$STUB"; then
     echo "Error: The uses: ref in $STUB is pointed to a forbidden ref (main, SHA, frozen vN, or unversioned channel)." >&2
     echo "It must be pinned to the dev-lead/v1-stable channel." >&2
     return 1
