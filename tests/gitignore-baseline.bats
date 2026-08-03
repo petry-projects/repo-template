@@ -87,6 +87,36 @@ extract_l1_span() {
   }
 }
 
+@test "SOPS/age-encrypted files (.enc.yaml) are not ignored" {
+  # *.secret.* is ignored (section 11), but !*.enc.yaml re-allows encrypted variants.
+  run git -C "$BATS_TEST_DIRNAME/.." check-ignore --no-index "config.secret.enc.yaml"
+  [ "$status" -ne 0 ]
+}
+
+@test "public certificate files (.crt) are not ignored" {
+  # !ca.crt and !*.crt are explicit negations in section 4 of the baseline.
+  run git -C "$BATS_TEST_DIRNAME/.." check-ignore --no-index "ca.crt"
+  [ "$status" -ne 0 ]
+}
+
+@test "public key files (.pub) are not ignored" {
+  # id_rsa.* is ignored, but !*.pub re-allows public key files.
+  run git -C "$BATS_TEST_DIRNAME/.." check-ignore --no-index "id_rsa.pub"
+  [ "$status" -ne 0 ]
+}
+
+@test "private key files (.pem) are ignored" {
+  # *.pem is in the ignore list (section 4); private keys must not slip through.
+  run git -C "$BATS_TEST_DIRNAME/.." check-ignore --no-index "private.pem"
+  [ "$status" -eq 0 ]
+}
+
+@test "database dump files (.sql.gz) are ignored" {
+  # *.sql.gz is in the ignore list (section 7).
+  run git -C "$BATS_TEST_DIRNAME/.." check-ignore --no-index "backup.sql.gz"
+  [ "$status" -eq 0 ]
+}
+
 @test "L2 does not re-ignore a baseline-negated dotenv path" {
   # The baseline ignores the dotenv family but re-allows committed templates via
   # negations (!.env.example, !.env.sample, …). A broad `.env` or `.env.*`
