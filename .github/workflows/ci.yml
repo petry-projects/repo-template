@@ -78,9 +78,11 @@ jobs:
           # matching *SHA256* containing hex strings as Security Hotspots (false positive).
           GITLEAKS_CHECKSUM: "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb"
         run: |
+          set -e
           tarball="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
           url="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/${tarball}"
           curl -fsSL --proto '=https' --proto-redir '=https' "${url}" -o /tmp/gitleaks.tar.gz
+          [ -f /tmp/gitleaks.tar.gz ] || { echo "Download failed: file not created"; exit 1; }
           echo "${GITLEAKS_CHECKSUM}  /tmp/gitleaks.tar.gz" | sha256sum -c
           tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
           sudo mv /tmp/gitleaks /usr/local/bin
@@ -107,6 +109,7 @@ jobs:
 
       - name: Coverage (shell/bats via kcov)
         run: |
+          set -e
           shopt -s globstar nullglob
           bats_files=(tests/**/*.bats)
           if [ ${#bats_files[@]} -eq 0 ]; then
@@ -115,12 +118,13 @@ jobs:
           fi
           sudo apt-get update -qq
           sudo apt-get install -y -qq bats
-          if sudo apt-get install -y -qq kcov 2>/dev/null; then
+          if apt-cache show kcov >/dev/null 2>&1; then
+            sudo apt-get install -y -qq kcov
             mkdir -p coverage
             kcov --include-path=. --exclude-path=tests,coverage coverage bats "${bats_files[@]}"
             echo "Coverage report written to ./coverage"
           else
-            echo "kcov not available on this platform — running tests without coverage instrumentation."
+            echo "kcov not available in apt — running bats without coverage instrumentation."
             bats "${bats_files[@]}"
           fi
 
