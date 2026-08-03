@@ -117,13 +117,12 @@ jobs:
           fi
           sudo apt-get update -qq
           sudo apt-get install -y -qq bats
-          if apt-cache show kcov >/dev/null 2>&1; then
-            sudo apt-get install -y -qq kcov
+          if sudo apt-get install -y -qq kcov 2>/dev/null; then
             mkdir -p coverage
             kcov --include-path=. --exclude-path=tests,coverage coverage bats "${bats_files[@]}"
             echo "Coverage report written to ./coverage"
           else
-            echo "kcov not available in apt — running bats without coverage instrumentation."
+            echo "kcov not available in apt — running bats directly (no coverage report generated)"
             bats "${bats_files[@]}"
           fi
 
