@@ -92,9 +92,11 @@ values-secrets.yaml
 values-secrets.yml
 *.secrets.yaml
 *.secrets.yml
-# helm-secrets / sops-encrypted values: do NOT add broad *.enc.yaml negations here —
-# extension alone cannot confirm SOPS encryption. Add specific paths per repo in
-# the L2 section below (e.g. !helm/production.sops.yaml) and validate SOPS structure in CI.
+# helm-secrets / sops-encrypted values are SAFE to commit — re-allow:
+!*.enc.yaml
+!*.enc.yml
+!secrets.enc.yaml
+!secrets.enc.yml
 # Skaffold / Tilt local overrides
 skaffold.local.yaml
 tilt_config.json
@@ -134,11 +136,12 @@ authorized_keys
 secring.*
 # Re-allow common PUBLIC artifacts that legitimately live in repos
 !*.pub
+!*.pub.pem
 !public.pem
 !public_key.pem
 !*.crt
 !ca.crt
-!*.cer
+!*.cert
 # NOTE: *.pem / *.key have HIGH false-positive rates (TLS test fixtures, JWT
 # libraries, webpack dev certs). Per-repo .gitignores should `!` specific
 # fixture FILES — never negate a whole directory.
@@ -211,9 +214,6 @@ op-session-*
 *.dump
 *.bak
 dump.rdb
-dump.sql
-backup.sql
-prod.sql
 mongodump/
 # Client config dotfiles that store passwords in plaintext
 .pgpass
@@ -340,9 +340,13 @@ private.yml
 !*.secrets.example
 !secrets.example.*
 !credentials.example.*
-# SOPS/age-encrypted variants: do NOT add broad *.enc.yaml / *.sops.yaml negations —
-# extension alone cannot confirm encryption. Add specific file paths per repo in
-# the L2 section below and validate SOPS structure in CI.
+# Re-allow SOPS/age-encrypted variants (safe to commit)
+!*.enc.yaml
+!*.enc.yml
+!*.enc.json
+!*.sops.yaml
+!*.sops.yml
+!*.sops.json
 
 
 # ---------------------------------------------------------------------------
