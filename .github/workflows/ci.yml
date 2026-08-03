@@ -120,7 +120,7 @@ jobs:
             kcov --include-path=. --exclude-path=tests,coverage coverage bats "${bats_files[@]}"
             echo "Coverage report written to ./coverage"
           else
-            echo "kcov not available in apt repos (dropped in Ubuntu 24.04) — running bats directly."
+            echo "kcov not available on this platform — running tests without coverage instrumentation."
             bats "${bats_files[@]}"
           fi
 
