@@ -43,7 +43,7 @@ jobs:
       contents: read
     steps:
       - name: Checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       # ── Replace the step below with your stack's checks ───────────────────────
       # Standard CI stages: lint, format check, type check, unit tests, coverage
@@ -56,12 +56,11 @@ jobs:
       - name: Placeholder — replace with real build/test steps
         run: echo "CI stub — add your stack's lint/format/typecheck/test/coverage steps; see BOOTSTRAP.md."
 
-
       - name: Install bats
         run: sudo apt-get install -y bats
 
       - name: Run compliance regression tests
-        run: bats tests/ci-secret-scan.bats tests/dev-lead-stub.bats
+        run: bats tests/ci-secret-scan.bats
 
   # Canonical secret-scan job — copied verbatim from push-protection.md#required-ci-job.
   # Produces the `Secret scan (gitleaks)` required check. Uses the gitleaks CLI (not
@@ -74,7 +73,7 @@ jobs:
       contents: read
     steps:
       - name: Checkout (full history)
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           fetch-depth: 0
 
@@ -85,11 +84,11 @@ jobs:
           # matching *SHA256* containing hex strings as Security Hotspots (false positive).
           GITLEAKS_CHECKSUM: "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb"
         run: |
+          set -e
           tarball="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
           url="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/${tarball}"
-          # --proto '=https' --proto-redir '=https' restricts both the initial connection
-          # and any redirect following to HTTPS only (githubactions:S6506).
-          curl -fsSL --proto '=https' --proto-redir '=https' "${url}" -o /tmp/gitleaks.tar.gz
+          curl -fsSL --proto '=https' --proto-redir '=https' --tlsv1.2 "${url}" -o /tmp/gitleaks.tar.gz
+          [ -f /tmp/gitleaks.tar.gz ] || { echo "Download failed: file not created"; exit 1; }
           echo "${GITLEAKS_CHECKSUM}  /tmp/gitleaks.tar.gz" | sha256sum -c
           tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
           sudo mv /tmp/gitleaks /usr/local/bin
@@ -110,12 +109,13 @@ jobs:
       contents: read
     steps:
       - name: Checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
 
       - name: Coverage (shell/bats via kcov)
         run: |
+          set -e
           shopt -s globstar nullglob
           bats_files=(tests/**/*.bats)
           if [ ${#bats_files[@]} -eq 0 ]; then
@@ -124,12 +124,13 @@ jobs:
           fi
           sudo apt-get update -qq
           sudo apt-get install -y -qq bats
+          # kcov was removed from Ubuntu apt repos; attempt install then fall back to plain bats.
           if sudo apt-get install -y -qq kcov 2>/dev/null; then
             mkdir -p coverage
             kcov --include-path=. --exclude-path=tests,coverage coverage bats "${bats_files[@]}"
             echo "Coverage report written to ./coverage"
           else
-            echo "kcov not available on this platform — running tests without coverage instrumentation."
+            echo "kcov unavailable via apt — running bats without coverage wrapper."
             bats "${bats_files[@]}"
           fi
 
