@@ -128,7 +128,7 @@ CANONICAL
 @test "with: agent_ref is pinned to the major-scoped dev-lead/v1-stable channel (dev-lead-stub-agent-ref)" {
   # The compliance check requires the dev-lead/v<M>-<channel> form. Anchor the end
   # so a suffix like dev-lead/v1-stable-rogue cannot slip through.
-  grep -qE '^[[:space:]]+agent_ref:[[:space:]]+dev-lead/v1-stable([[:space:]]|$|#)' "$STUB" || {
+  grep -qE '^[[:space:]]+agent_ref:[[:space:]]+dev-lead/v1-stable([[:space:]]|$)' "$STUB" || {
     echo "agent_ref must be the major-scoped channel 'dev-lead/v1-stable', not the unversioned 'dev-lead/stable'." >&2
     return 1
   }
@@ -142,7 +142,7 @@ CANONICAL
 }
 
 @test "uses: ref is pinned to the dev-lead/v1-stable channel and matches agent_ref" {
-  grep -qE '^[[:space:]]+uses:[[:space:]]+petry-projects/\.github-private/\.github/workflows/dev-lead-reusable\.yml@dev-lead/v1-stable([[:space:]]|$|#)' "$STUB" || {
+  grep -qE '^[[:space:]]+uses:[[:space:]]+petry-projects/\.github-private/\.github/workflows/dev-lead-reusable\.yml@dev-lead/v1-stable([[:space:]]|$)' "$STUB" || {
     echo "uses: ref must be pinned to the major-scoped dev-lead/v1-stable channel." >&2
     return 1
   }

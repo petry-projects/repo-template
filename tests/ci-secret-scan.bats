@@ -28,8 +28,9 @@ GITLEAKS_TOML="${BATS_TEST_DIRNAME}/../.gitleaks.toml"
   grep -qF 'gitleaks detect --source . --config .gitleaks.toml --redact --verbose --exit-code 1' "$CI_YML"
 }
 
-
-
+@test "secret-scan curl uses HTTPS-only redirect enforcement flags" {
+  grep -qE "curl[[:space:]].*--proto '=https'.*--proto-redir '=https'.*--tlsv1\.2" "$CI_YML"
+}
 
 
 
