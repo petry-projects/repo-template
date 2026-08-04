@@ -26,7 +26,7 @@
 # https://github.com/petry-projects/.github/blob/main/standards/ci-standards.md#reusable-workflow-versioning--the-stable-channel.
 #
 # REQUIRED secrets: CLAUDE_CODE_OAUTH_TOKEN
-# OPTIONAL secrets: GH_PAT_WORKFLOWS, GOOGLE_API_KEY, GH_PAT
+# OPTIONAL secrets: GH_PAT_WORKFLOWS, GOOGLE_API_KEY, GH_PAT_DON_PETRY
 # ─────────────────────────────────────────────────────────────────────────────
 
 name: Dev-Lead Agent
