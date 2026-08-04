@@ -41,7 +41,7 @@ STUB="${BATS_TEST_DIRNAME}/../.github/workflows/dependabot-rebase.yml"
 #   • This file is a THIN CALLER STUB. All rebase/merge serialization logic
 #     lives in the reusable workflow above.
 #   • You MUST NOT change: the `uses:` ref — it is pinned to the
-#     `dependabot-rebase/v2-stable` channel, a moving tag advanced centrally.
+#     `dependabot-rebase/stable` channel, a moving tag advanced centrally.
 #     Never repoint it to `@main`, a SHA, or a frozen `@vX` (see
 #     ci-standards.md → Reusable workflow versioning). Also do not change the
 #     concurrency group name, the explicit secrets
@@ -84,7 +84,7 @@ jobs:
     permissions:
       contents: write   # update-branch via GITHUB_TOKEN (may touch .github/workflows/)
       pull-requests: write  # re-approve PRs after branch update
-    uses: petry-projects/.github/.github/workflows/dependabot-rebase-reusable.yml@dependabot-rebase/v2-stable  # NOSONAR(githubactions:S7637) first-party channel ref
+    uses: petry-projects/.github/.github/workflows/dependabot-rebase-reusable.yml@dependabot-rebase/stable  # NOSONAR(githubactions:S7637) first-party channel ref
     secrets:
       APP_ID: ${{ secrets.APP_ID }}
       APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
@@ -99,14 +99,14 @@ CANONICAL
   }
 }
 
-@test "uses: ref is pinned to the dependabot-rebase/v2-stable channel" {
-  grep -qF 'uses: petry-projects/.github/.github/workflows/dependabot-rebase-reusable.yml@dependabot-rebase/v2-stable' "$STUB"
+@test "uses: ref is pinned to the dependabot-rebase/stable channel" {
+  grep -qF 'uses: petry-projects/.github/.github/workflows/dependabot-rebase-reusable.yml@dependabot-rebase/stable' "$STUB"
 }
 
 @test "uses: ref is not repointed to @main, a SHA, or a frozen @vN" {
-  if grep -qE 'dependabot-rebase-reusable\.yml@(main|[0-9a-f]{7,40}|v[0-9]+$)' "$STUB"; then
+  if grep -qE 'dependabot-rebase-reusable\.yml@(main|[0-9a-f]{7,40}|v[0-9]+)' "$STUB"; then
     echo "Error: The uses: ref in $STUB is pointed to a forbidden ref (main, SHA, or frozen vN)." >&2
-    echo "It must be pinned to the dependabot-rebase/v2-stable channel." >&2
+    echo "It must be pinned to the dependabot-rebase/stable channel." >&2
     return 1
   fi
 }
