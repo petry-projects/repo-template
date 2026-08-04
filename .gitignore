@@ -95,10 +95,8 @@ values-secrets.yml
 # helm-secrets / sops-encrypted values are SAFE to commit — re-allow:
 !*.enc.yaml
 !*.enc.yml
-!*.enc.json
-!*.sops.yaml
-!*.sops.yml
-!*.sops.json
+!secrets.enc.yaml
+!secrets.enc.yml
 # Skaffold / Tilt local overrides
 skaffold.local.yaml
 tilt_config.json
