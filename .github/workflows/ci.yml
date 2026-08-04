@@ -56,11 +56,12 @@ jobs:
       - name: Placeholder — replace with real build/test steps
         run: echo "CI stub — add your stack's lint/format/typecheck/test/coverage steps; see BOOTSTRAP.md."
 
+
       - name: Install bats
         run: sudo apt-get install -y bats
 
       - name: Run compliance regression tests
-        run: bats tests/ci-secret-scan.bats
+        run: bats tests/ci-secret-scan.bats tests/dev-lead-stub.bats
 
   # Canonical secret-scan job — copied verbatim from push-protection.md#required-ci-job.
   # Produces the `Secret scan (gitleaks)` required check. Uses the gitleaks CLI (not
@@ -87,7 +88,9 @@ jobs:
           set -e
           tarball="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
           url="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/${tarball}"
-          curl -fsSL --proto '=https' --proto-redir '=https' --tlsv1.2 "${url}" -o /tmp/gitleaks.tar.gz
+          # --proto '=https' --proto-redir '=https' restricts both the initial connection
+          # and any redirect following to HTTPS only (githubactions:S6506).
+          curl -fsSL --proto '=https' --proto-redir '=https' "${url}" -o /tmp/gitleaks.tar.gz
           [ -f /tmp/gitleaks.tar.gz ] || { echo "Download failed: file not created"; exit 1; }
           echo "${GITLEAKS_CHECKSUM}  /tmp/gitleaks.tar.gz" | sha256sum -c
           tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
@@ -124,13 +127,13 @@ jobs:
           fi
           sudo apt-get update -qq
           sudo apt-get install -y -qq bats
-          # kcov was removed from Ubuntu apt repos; attempt install then fall back to plain bats.
-          if sudo apt-get install -y -qq kcov 2>/dev/null; then
+          if apt-cache show kcov >/dev/null 2>&1; then
+            sudo apt-get install -y -qq kcov
             mkdir -p coverage
             kcov --include-path=. --exclude-path=tests,coverage coverage bats "${bats_files[@]}"
             echo "Coverage report written to ./coverage"
           else
-            echo "kcov unavailable via apt — running bats without coverage wrapper."
+            echo "kcov not available in apt — running bats without coverage instrumentation."
             bats "${bats_files[@]}"
           fi
 
