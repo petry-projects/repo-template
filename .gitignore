@@ -399,11 +399,10 @@ actionlint.tar.gz
 # standards/gitignore-standard.md.
 
 
+
 # OS / editor
 .DS_Store
 *.swp
-.idea/
-.vscode/
 
 # Dependencies / build output
 node_modules/
@@ -411,6 +410,6 @@ dist/
 build/
 coverage/
 
-# Logs
+# Logs / env
 *.log
 
