@@ -25,16 +25,18 @@ STUB="${BATS_TEST_DIRNAME}/../.github/workflows/dev-lead.yml"
   # Inline canonical snapshot — update this heredoc whenever the central template
   # (petry-projects/.github/standards/workflows/dev-lead.yml) changes.
   # The channel pin (e.g. dev-lead/v1-stable, dev-lead/v1-next) is the only
-  # permitted per-repo diff; derive it from the stub so the canonical snapshot
-  # can be substituted before the byte comparison rather than hardcoding v1-stable.
+  # permitted per-repo diff; normalize it in both canonical and stub before
+  # comparison so adopters using any major-scoped channel pass the test.
   local channel
   channel=$(grep 'agent_ref:' "$STUB" | grep -oE 'dev-lead/v[0-9]+[^[:space:]]*' | head -1)
   if [ -z "$channel" ]; then
     echo "Could not extract channel from stub agent_ref" >&2
     return 1
   fi
-  local canon
+  local canon canon_norm stub_norm
   canon="$(mktemp)"
+  canon_norm="$(mktemp)"
+  stub_norm="$(mktemp)"
   # The canonical template ends with a single trailing newline, so reconstruct it
   # with printf '%s\n' (command substitution strips the heredoc's trailing newline,
   # which printf then restores) to stay byte-faithful to the committed stub the
@@ -68,7 +70,7 @@ STUB="${BATS_TEST_DIRNAME}/../.github/workflows/dev-lead.yml"
 # https://github.com/petry-projects/.github/blob/main/standards/ci-standards.md#reusable-workflow-versioning--the-stable-channel.
 #
 # REQUIRED secrets: CLAUDE_CODE_OAUTH_TOKEN
-# OPTIONAL secrets: GH_PAT_WORKFLOWS, GOOGLE_API_KEY, GH_PAT
+# OPTIONAL secrets: GH_PAT_WORKFLOWS, GOOGLE_API_KEY, GH_PAT_DON_PETRY
 # ─────────────────────────────────────────────────────────────────────────────
 
 name: Dev-Lead Agent
@@ -106,7 +108,8 @@ jobs:
     uses: petry-projects/.github-private/.github/workflows/dev-lead-reusable.yml@dev-lead/v1-stable  # NOSONAR(githubactions:S7637) first-party channel ref
     with:
       agent_ref: dev-lead/v1-stable
-    secrets: inherit  # NOSONAR(githubactions:S7635) first-party trusted reusable
+    secrets:
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
     permissions:
       contents: write
       pull-requests: write
@@ -116,8 +119,10 @@ jobs:
       statuses: read
 CANONICAL
 )" | sed "s|dev-lead/v1-stable|${channel}|g" > "$canon"
-  run diff -u "$canon" "$STUB"
-  rm -f "$canon"
+  sed -E 's#(dev-lead/v[0-9]+-(stable|next|ring[0-9]+))([[:space:]]|$)#dev-lead/vX-CHANNEL\3#g' "$canon" > "$canon_norm"
+  sed -E 's#(dev-lead/v[0-9]+-(stable|next|ring[0-9]+))([[:space:]]|$)#dev-lead/vX-CHANNEL\3#g' "$STUB" > "$stub_norm"
+  run diff -u "$canon_norm" "$stub_norm"
+  rm -f "$canon" "$canon_norm" "$stub_norm"
   [ "$status" -eq 0 ] || {
     echo "stub drifted from canonical:"
     echo "$output"
@@ -149,7 +154,7 @@ CANONICAL
 }
 
 @test "uses: ref is not repointed to the unversioned channel, @main, a SHA, or a frozen @vN" {
-  if grep -qE 'dev-lead-reusable\.yml@(main|[0-9a-f]{7,40}|dev-lead/v[0-9]+|dev-lead/(stable|next))([[:space:]]|#|$)' "$STUB"; then
+  if grep -qE 'dev-lead-reusable\.yml@(main|[0-9a-f]{7,40}|v[0-9]+|dev-lead/(stable|next|ring[0-9]+)|dev-lead/v[0-9]+)([[:space:]]|$)' "$STUB"; then
     echo "Error: The uses: ref in $STUB is pointed to a forbidden ref (main, SHA, frozen vN, or unversioned channel)." >&2
     echo "It must be pinned to the dev-lead/v1-stable channel." >&2
     return 1
