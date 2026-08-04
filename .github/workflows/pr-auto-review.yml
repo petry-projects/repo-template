@@ -46,15 +46,15 @@ permissions: {}
 
 jobs:
   pr-auto-review:
-    # Fork `pull_request` events (including dependabot[bot] and other external
-    # contributors) run with a read-only token and NO access to org secrets, so
-    # `secrets.GH_PAT_DON_PETRY || secrets.GH_PAT_WORKFLOWS` is empty, the
-    # reusable's GH_TOKEN is blank, and every gh call exits 4. Readiness for fork
+    # Dependabot `pull_request` events run with a read-only token and NO access to
+    # org secrets, so `secrets.GH_PAT_DON_PETRY || secrets.GH_PAT_WORKFLOWS` is empty,
+    # the reusable's GH_TOKEN is blank, and every gh call exits 4. Readiness for those
     # PRs is still evaluated on the secret-bearing workflow_run / check_suite events
     # (which run in the base-repo context), so skip the token-less pull_request run —
     # it yields a `skipped`, not `failure`, conclusion. Scoped to the pull_request
-    # event so workflow_run / check_suite runs still execute.
-    if: github.event_name != 'pull_request' || github.repository == github.event.pull_request.head.repo.full_name  # NOSONAR — availability guard, not a security gate; worst case is a skipped run, not a privilege grant
+    # event so workflow_run / check_suite runs (whose actor may also be dependabot[bot])
+    # still execute. Mirrors the secret-availability guard in copilot-setup-steps.yml.
+    if: github.event_name != 'pull_request' || github.actor != 'dependabot[bot]'  # NOSONAR — availability guard, not a security gate; worst case is a skipped run, not a privilege grant
     permissions:
       pull-requests: read
       checks: read
