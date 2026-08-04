@@ -13,4 +13,3 @@ updates:
     open-pull-requests-limit: 0
     labels:
       - "security"
-      - "dependencies"
