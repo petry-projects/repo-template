@@ -398,6 +398,7 @@ actionlint.tar.gz
 # and never re-ignore a path the L1 block negates. See
 # standards/gitignore-standard.md.
 
+
 # OS / editor
 .DS_Store
 *.swp
@@ -408,6 +409,6 @@ dist/
 build/
 coverage/
 
-# Logs
+# Logs / env
 *.log
 
