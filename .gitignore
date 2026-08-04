@@ -392,6 +392,7 @@ actionlint.tar.gz
 # <<< END petry-projects secrets baseline <<<
 
 
+
 # OS / editor
 .DS_Store
 *.swp
@@ -402,6 +403,6 @@ dist/
 build/
 coverage/
 
-# Logs
+# Logs / env
 *.log
 
