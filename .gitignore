@@ -2,6 +2,8 @@
 # =====================================================================# OS / editor
 .DS_Store
 *.swp
+.idea/
+.vscode/
 
 # Dependencies / build output
 node_modules/
@@ -11,4 +13,5 @@ coverage/
 
 # Logs / env
 *.log
-
+.env
+.env.*
