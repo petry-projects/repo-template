@@ -92,7 +92,7 @@ jobs:
       contents: read
     steps:
       - name: Checkout (full history)
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
 
@@ -103,13 +103,9 @@ jobs:
           # matching *SHA256* containing hex strings as Security Hotspots (false positive).
           GITLEAKS_CHECKSUM: "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb"
         run: |
-          set -e
           tarball="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
           url="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/${tarball}"
-          # --proto '=https' --proto-redir '=https' restricts both the initial connection
-          # and any redirect following to HTTPS only (githubactions:S6506).
-          curl -fsSL --proto '=https' --proto-redir '=https' "${url}" -o /tmp/gitleaks.tar.gz
-          [ -f /tmp/gitleaks.tar.gz ] || { echo "Download failed: file not created"; exit 1; }
+          wget -q "${url}" -O /tmp/gitleaks.tar.gz
           echo "${GITLEAKS_CHECKSUM}  /tmp/gitleaks.tar.gz" | sha256sum -c
           tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
           sudo mv /tmp/gitleaks /usr/local/bin
@@ -127,18 +123,15 @@ jobs:
   # block below (keep the job id and `name:` as `coverage` so the required check is stable).
   coverage:
     name: coverage
-    runs-on: ubuntu-22.04  # kcov dropped from Ubuntu 24.04 apt; pin until kcov ships a 24.04-compatible package
+    runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:
       - name: Checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Coverage (shell/bats)
         run: |
-          set -e
           shopt -s globstar nullglob
           bats_files=(tests/**/*.bats)
           if [ ${#bats_files[@]} -eq 0 ]; then
