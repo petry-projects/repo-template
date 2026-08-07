@@ -118,8 +118,8 @@ jobs:
             kcov --include-path=. --exclude-path=tests,coverage coverage bats "${bats_files[@]}"
             echo "Coverage report written to ./coverage"
           else
-            echo "kcov not available in package repos — running bats without coverage instrumentation."
-            bats "${bats_files[@]}"
+            echo "::error::kcov installation failed; coverage cannot be enforced."
+            exit 1
           fi
 
       # ── Per-stack expansion — replace/augment the shell block above for your stack.
