@@ -80,7 +80,7 @@ jobs:
         run: |
           tarball="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
           url="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/${tarball}"
-          curl --proto-redir '=https' --fail --location -o /tmp/gitleaks.tar.gz "${url}"
+          curl --proto '=https' --proto-redir '=https' --fail --location -o /tmp/gitleaks.tar.gz "${url}"
           echo "${GITLEAKS_CHECKSUM}  /tmp/gitleaks.tar.gz" | sha256sum -c
           tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
           sudo mv /tmp/gitleaks /usr/local/bin
@@ -118,8 +118,9 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq bats libdw1 binutils-dev
           # kcov was removed from Ubuntu apt repos; install from GitHub releases instead.
-          wget -q "https://github.com/SimonKagstrom/kcov/releases/download/v${KCOV_VERSION}/kcov-amd64.tar.gz" \
-               -O /tmp/kcov.tar.gz
+          curl --proto '=https' --proto-redir '=https' --fail --location \
+               -o /tmp/kcov.tar.gz \
+               "https://github.com/SimonKagstrom/kcov/releases/download/v${KCOV_VERSION}/kcov-amd64.tar.gz"
           echo "${KCOV_CHECKSUM}  /tmp/kcov.tar.gz" | sha256sum -c
           tar -xzf /tmp/kcov.tar.gz -C /tmp
           sudo mv /tmp/usr/local/bin/kcov /usr/local/bin/kcov
