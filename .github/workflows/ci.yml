@@ -113,14 +113,26 @@ jobs:
           fi
           sudo apt-get update -qq
           sudo apt-get install -y -qq bats
-          if sudo apt-get install -y -qq kcov 2>/dev/null; then
-            mkdir -p coverage
-            kcov --include-path=. --exclude-path=tests,coverage coverage bats "${bats_files[@]}"
-            echo "Coverage report written to ./coverage"
-          else
+          # Try the package repository first; build from source if kcov is unavailable
+          # (e.g. dropped from ubuntu-24.04 universe).
+          if ! sudo apt-get install -y -qq kcov 2>/dev/null; then
+            echo "kcov not in apt repos — building from source."
+            sudo apt-get install -y -qq cmake g++ \
+              libcurl4-openssl-dev zlib1g-dev libdw-dev libiberty-dev binutils-dev
+            git clone --depth 1 --branch v42 \
+              https://github.com/SimonKagstrom/kcov.git /tmp/kcov-src
+            cmake -S /tmp/kcov-src -B /tmp/kcov-src/build \
+              -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local
+            cmake --build /tmp/kcov-src/build -j"$(nproc)"
+            sudo cmake --install /tmp/kcov-src/build
+          fi
+          if ! command -v kcov &>/dev/null; then
             echo "::error::kcov installation failed; coverage cannot be enforced."
             exit 1
           fi
+          mkdir -p coverage
+          kcov --include-path=. --exclude-path=tests,coverage coverage bats "${bats_files[@]}"
+          echo "Coverage report written to ./coverage"
 
       # ── Per-stack expansion — replace/augment the shell block above for your stack.
       #    Keep the job id and `name:` as `coverage` so the required check is unchanged.
