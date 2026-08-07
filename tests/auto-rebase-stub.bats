@@ -30,7 +30,7 @@ STUB="${BATS_TEST_DIRNAME}/../.github/workflows/auto-rebase.yml"
 }
 
 @test "uses: ref is not repointed to bare stable, @main, a SHA, or a frozen @vN" {
-  if grep -qE 'auto-rebase-reusable\.yml@(auto-rebase/stable[^/]|main|[0-9a-f]{7,40}|v[0-9]+)' "$STUB"; then
+  if grep -qE 'auto-rebase-reusable\.yml@(auto-rebase/stable([^/]|$)|main|[0-9a-f]{7,40}|v[0-9]+)' "$STUB"; then
     echo "Error: The uses: ref in $STUB is pointed to a forbidden ref (bare stable, main, SHA, or frozen vN)." >&2
     echo "It must be pinned to the auto-rebase/v2-stable channel." >&2
     return 1
