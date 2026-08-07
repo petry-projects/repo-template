@@ -167,7 +167,7 @@ jobs:
 
       # ── Per-stack expansion — replace/augment the shell block above for your stack.
       #    Keep the job id and `name:` as `coverage` so the required check is unchanged.
-      #    Node:   npx jest --coverage
-      #    Go:     go test ./... -coverprofile=coverage.out && go tool cover -func=coverage.out
-      #    Python: pytest --cov
-      #    Rust:   cargo llvm-cov --workspace
+      #    Node:    npx jest --coverage
+      #    Go:      go test ./... -coverprofile=coverage.out && go tool cover -func=coverage.out
+      #    Python:  pytest --cov
+      #    Rust:    cargo llvm-cov --workspace
