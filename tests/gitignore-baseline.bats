@@ -87,10 +87,11 @@ extract_l1_span() {
   }
 }
 
-@test "SOPS/age-encrypted files (.enc.yaml) are not ignored" {
-  # *.secret.* is ignored (section 11), but !*.enc.yaml re-allows encrypted variants.
+@test "SOPS/age-encrypted files (.enc.yaml) are ignored by default" {
+  # *.secret.* is ignored (section 11). Encrypted variants are not re-allowed in the
+  # baseline; repository-specific exceptions can be added below the END marker.
   run git -C "$BATS_TEST_DIRNAME/.." check-ignore --no-index "config.secret.enc.yaml"
-  [ "$status" -ne 0 ]
+  [ "$status" -eq 0 ]
 }
 
 @test "public certificate files (.crt) are not ignored" {
