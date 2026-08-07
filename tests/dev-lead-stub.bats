@@ -41,7 +41,7 @@ STUB="${BATS_TEST_DIRNAME}/../.github/workflows/dev-lead.yml"
   # with printf '%s\n' (command substitution strips the heredoc's trailing newline,
   # which printf then restores) to stay byte-faithful to the committed stub the
   # fleet stub-drift monitor compares SHAs against.
-  printf '%s' "$(cat << 'CANONICAL'
+  printf '%s\n' "$(cat << 'CANONICAL'
 # ─────────────────────────────────────────────────────────────────────────────
 # Dev-Lead Agent — thin caller stub
 # Standard:  petry-projects/.github/standards/ci-standards.md#5-dev-lead-agent
