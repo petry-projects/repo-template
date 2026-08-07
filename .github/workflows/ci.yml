@@ -80,7 +80,7 @@ jobs:
         run: |
           tarball="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
           url="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/${tarball}"
-          wget -q "${url}" -O /tmp/gitleaks.tar.gz
+          curl -fsSL --proto '=https' --proto-redir '=https' "${url}" -o /tmp/gitleaks.tar.gz
           echo "${GITLEAKS_CHECKSUM}  /tmp/gitleaks.tar.gz" | sha256sum -c
           tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
           sudo mv /tmp/gitleaks /usr/local/bin
@@ -104,6 +104,11 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Coverage (shell/bats via kcov)
+        env:
+          KCOV_VERSION: "42"
+          # Named KCOV_CHECKSUM (not KCOV_SHA256) — SonarCloud flags env var names
+          # matching *SHA256* containing hex strings as Security Hotspots (false positive).
+          KCOV_CHECKSUM: "78aa17a5f6d27a867cc0540b1550051591d350423a1a0ef98d63c9ce7cc10f9d"
         run: |
           shopt -s globstar nullglob
           bats_files=(tests/**/*.bats)
@@ -112,7 +117,21 @@ jobs:
             exit 0
           fi
           sudo apt-get update -qq
-          sudo apt-get install -y -qq bats kcov
+          sudo apt-get install -y -qq bats python3-yaml
+          # kcov was dropped from Ubuntu 22.04+ apt repositories; install pre-built
+          # binary from GitHub release instead.
+          curl -fsSL --proto '=https' --proto-redir '=https' \
+            "https://github.com/SimonKagstrom/kcov/releases/download/v${KCOV_VERSION}/kcov-amd64.tar.gz" \
+            -o /tmp/kcov.tar.gz
+          echo "${KCOV_CHECKSUM}  /tmp/kcov.tar.gz" | sha256sum -c
+          sudo tar -xzf /tmp/kcov.tar.gz -C /
+          # kcov v42 was built on Ubuntu 22.04 and links against libbfd-2.38 and
+          # libopcodes-2.38. Runners use Ubuntu 24.04 which ships the 2.42 variants.
+          # Symlink both so the pre-built binary loads (ABI-stable for kcov's usage).
+          opcodes_lib=$(find /usr/lib/x86_64-linux-gnu -maxdepth 1 -name 'libopcodes-*-system.so' 2>/dev/null | sort -V | tail -1)
+          [ -n "$opcodes_lib" ] && sudo ln -sf "$opcodes_lib" /usr/lib/x86_64-linux-gnu/libopcodes-2.38-system.so
+          bfd_lib=$(find /usr/lib/x86_64-linux-gnu -maxdepth 1 -name 'libbfd-*-system.so' 2>/dev/null | sort -V | tail -1)
+          [ -n "$bfd_lib" ] && sudo ln -sf "$bfd_lib" /usr/lib/x86_64-linux-gnu/libbfd-2.38-system.so
           mkdir -p coverage
           kcov --include-path=. --exclude-path=tests,coverage coverage bats "${bats_files[@]}"
           echo "Coverage report written to ./coverage"

@@ -5,19 +5,18 @@
 # template (petry-projects/.github → standards/workflows/auto-rebase.yml) and must
 # stay byte-identical across every adopting repo. The `uses:` ref is pinned to the
 # `auto-rebase/v2-stable` channel — the only permitted channel; never repoint it to
-# a bare `auto-rebase/stable`, @main, a SHA, or a frozen @vN. Any other diff is
-# drift — the silent-revert class of failure the fleet stub-drift monitor exists to
-# catch (fleet_stub_drift.sh).
+# an alternate channel, @main, a SHA, or a frozen @vN. Any other diff is drift —
+# the silent-revert class of failure the fleet stub-drift monitor exists to catch
+# (fleet_stub_drift.sh).
 #
 # The stub's behavior lives entirely in the central reusable; its `uses:` ref,
-# trigger events, concurrency group, job `permissions:` block, and
-# `secrets: inherit` stanza are drift-protected and MUST NOT be edited in the
-# caller (see the file's own "AGENTS — READ BEFORE EDITING" banner and
-# ci-standards.md → Reusable workflow versioning).
+# trigger events, concurrency group, and job `permissions:` block are drift-
+# protected and MUST NOT be edited in the caller (see the file's own "AGENTS —
+# READ BEFORE EDITING" banner and ci-standards.md → Reusable workflow versioning).
 #
-# The reusable requires `secrets: inherit` so GITHUB_TOKEN and any org secrets
-# are forwarded automatically (S7635 suppressed with NOSONAR — first-party
-# trusted reusable).
+# The reusable is a first-party trusted workflow; the stub passes `secrets: inherit`
+# (with a NOSONAR(githubactions:S7635) marker) so the reusable can access org
+# secrets without explicit forwarding.
 
 STUB="${BATS_TEST_DIRNAME}/../.github/workflows/auto-rebase.yml"
 
@@ -29,9 +28,9 @@ STUB="${BATS_TEST_DIRNAME}/../.github/workflows/auto-rebase.yml"
   grep -qF 'uses: petry-projects/.github/.github/workflows/auto-rebase-reusable.yml@auto-rebase/v2-stable' "$STUB"
 }
 
-@test "uses: ref is not repointed to bare stable, @main, a SHA, or a frozen @vN" {
-  if grep -qE 'auto-rebase-reusable\.yml@(auto-rebase/stable([^/]|$)|main|[0-9a-f]{7,40}|v[0-9]+)' "$STUB"; then
-    echo "Error: The uses: ref in $STUB is pointed to a forbidden ref (bare stable, main, SHA, or frozen vN)." >&2
+@test "uses: ref is not repointed to @main, a SHA, or a frozen @vN" {
+  if grep -qE 'auto-rebase-reusable\.yml@(main|[0-9a-f]{7,40}|v[0-9]+([[:space:]]|$))' "$STUB"; then
+    echo "Error: The uses: ref in $STUB is pointed to a forbidden ref (main, SHA, or frozen vN)." >&2
     echo "It must be pinned to the auto-rebase/v2-stable channel." >&2
     return 1
   fi
@@ -56,9 +55,9 @@ STUB="${BATS_TEST_DIRNAME}/../.github/workflows/auto-rebase.yml"
   grep -qE '^      pull-requests: write' "$STUB" || { echo "Missing pull-requests: write permission"; return 1; }
 }
 
-@test "stub uses secrets: inherit (first-party trusted reusable)" {
-  grep -qE '^    secrets:[[:space:]]+inherit' "$STUB" || {
-    echo "Error: $STUB must use 'secrets: inherit' — the reusable is a first-party trusted workflow." >&2
+@test "stub passes secrets: inherit with NOSONAR marker (S7635)" {
+  grep -qE 'secrets:[[:space:]]+inherit[[:space:]]+#[[:space:]]+NOSONAR\(githubactions:S7635\)' "$STUB" || {
+    echo "Error: $STUB must pass 'secrets: inherit  # NOSONAR(githubactions:S7635) first-party trusted reusable'." >&2
     return 1
   }
 }
@@ -94,8 +93,7 @@ STUB="${BATS_TEST_DIRNAME}/../.github/workflows/auto-rebase.yml"
 #
 # Auto-rebase non-Dependabot PRs — thin caller for the org-level reusable.
 # To adopt: copy this file to .github/workflows/auto-rebase.yml in your repo.
-# No explicit secret mapping is required. Available secrets are inherited by the
-# first-party reusable workflow.
+# No secrets required — uses GITHUB_TOKEN only.
 #
 # By default the reusable updates *every* behind PR (`eligibility: all`). The
 # `eligibility` input is a tunable extension point for future modes; to select

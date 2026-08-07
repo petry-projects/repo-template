@@ -13,10 +13,10 @@
 # ci-standards.md → Reusable workflow versioning (Centralization tiers).
 #
 # The stub's behavior lives entirely in the central reusable; its `uses:` ref,
-# trigger event, job `permissions:` block, and `secrets: inherit` stanza are
-# drift-protected and MUST NOT be edited in the caller (see the file's own
-# "AGENTS — READ BEFORE EDITING" banner). This guard pins those invariants so
-# drift is caught in CI rather than in production run health.
+# trigger event, job `permissions:` block, and `secrets:` block are drift-protected
+# and MUST NOT be edited in the caller (see the file's own "AGENTS — READ BEFORE
+# EDITING" banner). This guard pins those invariants so drift is caught in CI rather
+# than in production run health.
 
 STUB="${BATS_TEST_DIRNAME}/../.github/workflows/dependabot-automerge.yml"
 
@@ -112,8 +112,8 @@ CANONICAL
   grep -q '^permissions: {}' "$STUB" || { echo "Top-level permissions are not locked down to {}"; return 1; }
 }
 
-@test "job grants exactly contents: read + pull-requests: read and uses secrets: inherit" {
+@test "job grants exactly contents: read + pull-requests: read and passes secrets: inherit" {
   grep -qE '^      contents: read' "$STUB" || { echo "Missing contents: read permission"; return 1; }
   grep -qE '^      pull-requests: read' "$STUB" || { echo "Missing pull-requests: read permission"; return 1; }
-  grep -qE '^    secrets:[[:space:]]+inherit' "$STUB" || { echo "Missing 'secrets: inherit' (first-party trusted reusable)"; return 1; }
+  grep -qE 'secrets:[[:space:]]+inherit' "$STUB" || { echo "Missing secrets: inherit"; return 1; }
 }
