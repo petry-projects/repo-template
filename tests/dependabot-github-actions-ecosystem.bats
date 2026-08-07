@@ -48,13 +48,13 @@ setup() {
 @test "github-actions entry targets directory /" {
   run yq "$GHA_SELECT | .directory" "$DEPENDABOT"
   [ "$status" -eq 0 ]
-  [ "$output" = "/" ]
+  [ "${output//\"/}" = "/" ]
 }
 
 @test "github-actions entry uses a weekly schedule" {
   run yq "$GHA_SELECT | .schedule.interval" "$DEPENDABOT"
   [ "$status" -eq 0 ]
-  [ "$output" = "weekly" ]
+  [ "${output//\"/}" = "weekly" ]
 }
 
 @test "github-actions entry sets open-pull-requests-limit to 10 (version updates)" {
@@ -66,8 +66,8 @@ setup() {
 @test "github-actions entry carries the security and dependencies labels" {
   run yq "$GHA_SELECT | .labels[]" "$DEPENDABOT"
   [ "$status" -eq 0 ]
-  echo "$output" | grep -q "^security$"
-  echo "$output" | grep -q "^dependencies$"
+  echo "$output" | tr -d '"' | grep -q "^security$"
+  echo "$output" | tr -d '"' | grep -q "^dependencies$"
 }
 
 @test "pre-existing npm ecosystem entry is preserved (no regression)" {
@@ -80,6 +80,6 @@ setup() {
 
   run yq '.updates[] | select(.["package-ecosystem"] == "npm") | .labels[]' "$DEPENDABOT"
   [ "$status" -eq 0 ]
-  echo "$output" | grep -q "^security$"
-  echo "$output" | grep -q "^dependencies$"
+  echo "$output" | tr -d '"' | grep -q "^security$"
+  echo "$output" | tr -d '"' | grep -q "^dependencies$"
 }
