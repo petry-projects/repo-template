@@ -168,3 +168,7 @@ PYEOF
 @test "ci.yml defines the required secret-scan job" {
   grep -qE '^  secret-scan:' "${BATS_TEST_DIRNAME}/../.github/workflows/ci.yml"
 }
+
+@test "secret-scan job has the required display name" {
+  grep -qF 'name: Secret scan (gitleaks)' "${BATS_TEST_DIRNAME}/../.github/workflows/ci.yml"
+}
