@@ -30,7 +30,7 @@ STUB="${BATS_TEST_DIRNAME}/../.github/workflows/pr-review-mention.yml"
   # blob 2d6c410e) ships this stub WITH a single trailing newline. Emit the heredoc
   # with exactly one trailing newline (printf '%s\n') so this guard stays byte-faithful
   # to the upstream blob that the fleet stub-drift monitor compares SHAs against.
-  printf '%s\n' "$(cat << 'CANONICAL'
+  printf '%s' "$(cat << 'CANONICAL'
 # ─────────────────────────────────────────────────────────────────────────────
 # SOURCE OF TRUTH: petry-projects/.github/standards/workflows/pr-review-mention.yml
 # Standard:        petry-projects/.github/standards/ci-standards.md
