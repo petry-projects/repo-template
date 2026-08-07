@@ -43,17 +43,17 @@ STUB="${BATS_TEST_DIRNAME}/../.github/workflows/dependabot-automerge.yml"
 #     App token dance live in the reusable workflow above.
 #   • You MAY change: nothing in this file in normal use. Adopt verbatim.
 #   • You MUST NOT change: trigger event (must be `pull_request_target`),
-#     the `uses:` line, the `secrets:` block (forwarded explicitly per S7635),
-#     or the job-level `permissions:` block — reusable workflows can be
-#     granted no more permissions than the calling job has, so removing
-#     the stanza breaks the reusable's gh API calls.
+#     the `uses:` line, `secrets: inherit`, or the job-level `permissions:`
+#     block — reusable workflows can be granted no more permissions than the
+#     calling job has, so removing the stanza breaks the reusable's gh API
+#     calls.
 #   • If you need different behaviour, open a PR against the reusable in the
 #     central repo.
 # ─────────────────────────────────────────────────────────────────────────────
 #
 # Dependabot auto-merge — thin caller for the org-level reusable.
 # To adopt: copy this file to .github/workflows/dependabot-automerge.yml in your repo.
-# Required secrets (forwarded explicitly via the secrets: block below):
+# Required org/repo secrets (inherited):
 #   APP_ID         — GitHub App ID with contents:write and pull-requests:write
 #   APP_PRIVATE_KEY — GitHub App private key
 name: Dependabot auto-merge
@@ -71,9 +71,7 @@ jobs:
       contents: read
       pull-requests: read
     uses: petry-projects/.github/.github/workflows/dependabot-automerge-reusable.yml@dependabot-automerge/v2-stable  # NOSONAR(githubactions:S7637) first-party channel ref
-    secrets:
-      APP_ID: ${{ secrets.APP_ID }}
-      APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
+    secrets: inherit  # NOSONAR(githubactions:S7635) first-party trusted reusable
 CANONICAL
   run diff -u "$canon" "$STUB"
   rm -f "$canon"
