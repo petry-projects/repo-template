@@ -125,6 +125,11 @@ jobs:
             -o /tmp/kcov.tar.gz
           echo "${KCOV_CHECKSUM}  /tmp/kcov.tar.gz" | sha256sum -c
           sudo tar -xzf /tmp/kcov.tar.gz -C /
+          # kcov v42 was built on Ubuntu 22.04 and links against libopcodes-2.38.
+          # Runners use Ubuntu 24.04 which ships libopcodes-2.42. Symlink so the
+          # pre-built binary loads (ABI-stable across these minor versions for kcov).
+          opcodes_lib=$(find /usr/lib/x86_64-linux-gnu -maxdepth 1 -name 'libopcodes-*-system.so' 2>/dev/null | sort -V | tail -1)
+          [ -n "$opcodes_lib" ] && sudo ln -sf "$opcodes_lib" /usr/lib/x86_64-linux-gnu/libopcodes-2.38-system.so
           mkdir -p coverage
           kcov --include-path=. --exclude-path=tests,coverage coverage bats "${bats_files[@]}"
           echo "Coverage report written to ./coverage"
