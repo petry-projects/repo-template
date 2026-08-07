@@ -112,7 +112,17 @@ jobs:
             exit 0
           fi
           sudo apt-get update -qq
-          sudo apt-get install -y -qq bats kcov
+          sudo apt-get install -y -qq bats yq
+
+          # kcov not available in ubuntu-24.04 repos; build from source
+          if ! command -v kcov >/dev/null 2>&1; then
+            sudo apt-get install -y -qq cmake g++ pkg-config libcurl4-openssl-dev libelf-dev libdw-dev binutils-dev libiberty-dev zlib1g-dev libssl-dev
+            cd /tmp && git clone --depth 1 --branch v43 https://github.com/SimonKagstrom/kcov.git
+            cd kcov && git describe --tags --exact-match HEAD 2>/dev/null | grep -qx 'v43' || { echo "ERROR: kcov checkout is not pinned to v43"; exit 1; }
+            mkdir build && cd build && cmake .. && make && sudo make install
+            cd "$GITHUB_WORKSPACE"
+          fi
+
           mkdir -p coverage
           kcov --include-path=. --exclude-path=tests,coverage coverage bats "${bats_files[@]}"
           echo "Coverage report written to ./coverage"
