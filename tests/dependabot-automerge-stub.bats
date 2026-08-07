@@ -13,10 +13,10 @@
 # ci-standards.md → Reusable workflow versioning (Centralization tiers).
 #
 # The stub's behavior lives entirely in the central reusable; its `uses:` ref,
-# trigger event, job `permissions:` block, and `secrets:` block are drift-protected
-# and MUST NOT be edited in the caller (see the file's own "AGENTS — READ BEFORE
-# EDITING" banner). This guard pins those invariants so drift is caught in CI rather
-# than in production run health.
+# trigger event, job `permissions:` block, and `secrets: inherit` stanza are
+# drift-protected and MUST NOT be edited in the caller (see the file's own
+# "AGENTS — READ BEFORE EDITING" banner). This guard pins those invariants so
+# drift is caught in CI rather than in production run health.
 
 STUB="${BATS_TEST_DIRNAME}/../.github/workflows/dependabot-automerge.yml"
 
@@ -43,17 +43,17 @@ STUB="${BATS_TEST_DIRNAME}/../.github/workflows/dependabot-automerge.yml"
 #     App token dance live in the reusable workflow above.
 #   • You MAY change: nothing in this file in normal use. Adopt verbatim.
 #   • You MUST NOT change: trigger event (must be `pull_request_target`),
-#     the `uses:` line, the `secrets:` block (forwarded explicitly per S7635),
-#     or the job-level `permissions:` block — reusable workflows can be
-#     granted no more permissions than the calling job has, so removing
-#     the stanza breaks the reusable's gh API calls.
+#     the `uses:` line, `secrets: inherit`, or the job-level `permissions:`
+#     block — reusable workflows can be granted no more permissions than the
+#     calling job has, so removing the stanza breaks the reusable's gh API
+#     calls.
 #   • If you need different behaviour, open a PR against the reusable in the
 #     central repo.
 # ─────────────────────────────────────────────────────────────────────────────
 #
 # Dependabot auto-merge — thin caller for the org-level reusable.
 # To adopt: copy this file to .github/workflows/dependabot-automerge.yml in your repo.
-# Required secrets (forwarded explicitly via the secrets: block below):
+# Required org/repo secrets (inherited):
 #   APP_ID         — GitHub App ID with contents:write and pull-requests:write
 #   APP_PRIVATE_KEY — GitHub App private key
 name: Dependabot auto-merge
@@ -71,9 +71,7 @@ jobs:
       contents: read
       pull-requests: read
     uses: petry-projects/.github/.github/workflows/dependabot-automerge-reusable.yml@dependabot-automerge/v2-stable  # NOSONAR(githubactions:S7637) first-party channel ref
-    secrets:
-      APP_ID: ${{ secrets.APP_ID }}
-      APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
+    secrets: inherit  # NOSONAR(githubactions:S7635) first-party trusted reusable
 CANONICAL
 )" > "$canon"
   run diff -u "$canon" "$STUB"
@@ -114,10 +112,8 @@ CANONICAL
   grep -q '^permissions: {}' "$STUB" || { echo "Top-level permissions are not locked down to {}"; return 1; }
 }
 
-@test "job grants exactly contents: read + pull-requests: read and forwards required secrets" {
+@test "job grants exactly contents: read + pull-requests: read and uses secrets: inherit" {
   grep -qE '^      contents: read' "$STUB" || { echo "Missing contents: read permission"; return 1; }
   grep -qE '^      pull-requests: read' "$STUB" || { echo "Missing pull-requests: read permission"; return 1; }
-  grep -qE '^    secrets:' "$STUB" || { echo "Missing secrets block"; return 1; }
-  grep -qE 'APP_ID:' "$STUB" || { echo "Missing APP_ID secret"; return 1; }
-  grep -qE 'APP_PRIVATE_KEY:' "$STUB" || { echo "Missing APP_PRIVATE_KEY secret"; return 1; }
+  grep -qE '^    secrets:[[:space:]]+inherit' "$STUB" || { echo "Missing 'secrets: inherit' (first-party trusted reusable)"; return 1; }
 }
