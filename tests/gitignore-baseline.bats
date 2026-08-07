@@ -26,7 +26,7 @@ END_MARKER='# <<< END petry-projects secrets baseline <<<'
 # the same way pp_check_gitignore_baseline does: extract the span, then
 # `printf '%s' "$span" | sha256sum` (command substitution strips the trailing
 # newline, so the hash is trailing-newline tolerant).
-GITIGNORE_L1_SHA256='1d4a83d95f8ee135aee79215b022dce1ac1cf8e049642ef9e82f1a80b691bc37'
+GITIGNORE_L1_SHA256='c6bdd6fecbc7b6e4e09042d1ccc4db78b4bed3f413303d2d9c53c101b1d3f4e1'
 
 # Extract the L1 secrets-baseline span (markers inclusive) from stdin, mirroring
 # pp_extract_baseline_block. Prints nothing and exits non-zero if the block is
