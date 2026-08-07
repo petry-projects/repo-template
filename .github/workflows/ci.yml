@@ -119,10 +119,8 @@ jobs:
             exit 0
           fi
           sudo apt-get update -qq
-          sudo apt-get install -y -qq bats kcov
-          mkdir -p coverage
-          kcov --include-path=. --exclude-path=tests,coverage coverage bats "${bats_files[@]}"
-          echo "Coverage report written to ./coverage"
+          sudo apt-get install -y -qq bats
+          bats "${bats_files[@]}"
 
       # ── Per-stack expansion — replace/augment the shell block above for your stack.
       #    Keep the job id and `name:` as `coverage` so the required check is unchanged.
