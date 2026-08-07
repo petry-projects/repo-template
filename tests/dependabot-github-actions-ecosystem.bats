@@ -21,7 +21,8 @@ GHA_SELECT='.updates[] | select(.["package-ecosystem"] == "github-actions")'
 
 setup() {
   if ! command -v yq >/dev/null 2>&1; then
-    skip "yq is required but not installed"
+    echo "yq is required but not installed" >&2
+    return 1
   fi
 }
 
