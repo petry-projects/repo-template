@@ -327,22 +327,17 @@ credentials.yaml
 credentials.yml
 credentials.json
 credentials.toml
-*.credentials.*
 private.json
 private.yaml
 private.yml
 *.secret
 *.secret.*
 *.secrets
-*.secrets.*
 *.private
 *.private.*
 # Re-allow obviously-public template variants
 !*.secret.example
 !*.secrets.example
-!*.secrets.example.*
-!*.credentials.example
-!*.credentials.example.*
 !secrets.example.*
 !credentials.example.*
 # Re-allow SOPS/age-encrypted variants (safe to commit)
@@ -423,3 +418,11 @@ coverage/
 
 # Logs
 *.log
+
+# Suffixed credential/secret filenames (e.g. app.secrets.json, app.credentials.json)
+*.credentials.*
+!*.credentials.example
+!*.credentials.example.*
+*.secrets.*
+!*.secrets.example
+!*.secrets.example.*
