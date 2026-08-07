@@ -4,20 +4,20 @@
 # .github/workflows/auto-rebase.yml is copied VERBATIM from the canonical org
 # template (petry-projects/.github → standards/workflows/auto-rebase.yml) and must
 # stay byte-identical across every adopting repo. The `uses:` ref is pinned to the
-# `auto-rebase/stable` channel — the only permitted channel; never repoint it to an
-# alternate channel, @main, a SHA, or a frozen @vN. Any other diff is drift — the
-# silent-revert class of failure the fleet stub-drift monitor exists to catch
-# (fleet_stub_drift.sh).
+# `auto-rebase/v2-stable` channel — the only permitted channel; never repoint it to
+# a bare `auto-rebase/stable`, @main, a SHA, or a frozen @vN. Any other diff is
+# drift — the silent-revert class of failure the fleet stub-drift monitor exists to
+# catch (fleet_stub_drift.sh).
 #
 # The stub's behavior lives entirely in the central reusable; its `uses:` ref,
-# trigger events, concurrency group, and job `permissions:` block are drift-
-# protected and MUST NOT be edited in the caller (see the file's own "AGENTS —
-# READ BEFORE EDITING" banner and ci-standards.md → Reusable workflow versioning).
+# trigger events, concurrency group, job `permissions:` block, and
+# `secrets: inherit` stanza are drift-protected and MUST NOT be edited in the
+# caller (see the file's own "AGENTS — READ BEFORE EDITING" banner and
+# ci-standards.md → Reusable workflow versioning).
 #
-# The reusable needs no caller-supplied secrets (GITHUB_TOKEN only), so the stub
-# forwards NO `secrets:` block — this satisfies SonarCloud githubactions:S7635
-# ("Only pass required secrets to this workflow") without a blanket
-# `secrets: inherit`.
+# The reusable requires `secrets: inherit` so GITHUB_TOKEN and any org secrets
+# are forwarded automatically (S7635 suppressed with NOSONAR — first-party
+# trusted reusable).
 
 STUB="${BATS_TEST_DIRNAME}/../.github/workflows/auto-rebase.yml"
 
@@ -25,14 +25,14 @@ STUB="${BATS_TEST_DIRNAME}/../.github/workflows/auto-rebase.yml"
   [ -f "$STUB" ]
 }
 
-@test "uses: ref is pinned to the auto-rebase/stable channel" {
-  grep -qF 'uses: petry-projects/.github/.github/workflows/auto-rebase-reusable.yml@auto-rebase/stable' "$STUB"
+@test "uses: ref is pinned to the auto-rebase/v2-stable channel" {
+  grep -qF 'uses: petry-projects/.github/.github/workflows/auto-rebase-reusable.yml@auto-rebase/v2-stable' "$STUB"
 }
 
-@test "uses: ref is not repointed to @main, a SHA, or a frozen @vN" {
-  if grep -qE 'auto-rebase-reusable\.yml@(main|[0-9a-f]{7,40}|v[0-9]+)' "$STUB"; then
-    echo "Error: The uses: ref in $STUB is pointed to a forbidden ref (main, SHA, or frozen vN)." >&2
-    echo "It must be pinned to the auto-rebase/stable channel." >&2
+@test "uses: ref is not repointed to bare stable, @main, a SHA, or a frozen @vN" {
+  if grep -qE 'auto-rebase-reusable\.yml@(auto-rebase/stable([^/]|$)|main|[0-9a-f]{7,40}|v[0-9]+)' "$STUB"; then
+    echo "Error: The uses: ref in $STUB is pointed to a forbidden ref (bare stable, main, SHA, or frozen vN)." >&2
+    echo "It must be pinned to the auto-rebase/v2-stable channel." >&2
     return 1
   fi
 }
@@ -56,19 +56,11 @@ STUB="${BATS_TEST_DIRNAME}/../.github/workflows/auto-rebase.yml"
   grep -qE '^      pull-requests: write' "$STUB" || { echo "Missing pull-requests: write permission"; return 1; }
 }
 
-@test "stub does not use blanket secrets: inherit (S7635)" {
-  if grep -qE '^[[:space:]]*secrets:[[:space:]]+inherit[[:space:]]*$' "$STUB"; then
-    echo "Error: $STUB uses 'secrets: inherit'; the reusable needs no caller secrets." >&2
-    echo "Remove the secrets block (GITHUB_TOKEN is provided automatically)." >&2
+@test "stub uses secrets: inherit (first-party trusted reusable)" {
+  grep -qE '^    secrets:[[:space:]]+inherit' "$STUB" || {
+    echo "Error: $STUB must use 'secrets: inherit' — the reusable is a first-party trusted workflow." >&2
     return 1
-  fi
-}
-
-@test "stub forwards no secrets block (reusable uses GITHUB_TOKEN only)" {
-  if grep -qE '^    secrets:' "$STUB"; then
-    echo "Error: $STUB declares a job-level secrets block; none is required." >&2
-    return 1
-  fi
+  }
 }
 
 @test "auto-rebase stub is byte-identical to the canonical template" {
@@ -89,7 +81,7 @@ STUB="${BATS_TEST_DIRNAME}/../.github/workflows/auto-rebase.yml"
 #   • This file is a THIN CALLER STUB. All branch-update logic lives in the
 #     reusable workflow above.
 #   • You MUST NOT change: the `uses:` ref — it is pinned to the
-#     `auto-rebase/stable` channel, a moving tag advanced centrally. Never
+#     `auto-rebase/v2-stable` channel, a moving tag advanced centrally. Never
 #     repoint it to `@main`, a SHA, or a frozen `@vX` (see ci-standards.md →
 #     Reusable workflow versioning). Also do not change the trigger event,
 #     the concurrency group name,
@@ -102,16 +94,15 @@ STUB="${BATS_TEST_DIRNAME}/../.github/workflows/auto-rebase.yml"
 #
 # Auto-rebase non-Dependabot PRs — thin caller for the org-level reusable.
 # To adopt: copy this file to .github/workflows/auto-rebase.yml in your repo.
-# No secrets required — uses GITHUB_TOKEN only.
+# No explicit secret mapping is required. Available secrets are inherited by the
+# first-party reusable workflow.
 #
-# By default the reusable only updates *review-ready* PRs: non-draft AND
-# (carrying a current APPROVED review OR the `auto-rebase:ready` label). This
-# keeps the workflow from fanning out branch-update CI runs to every behind PR.
-# To tune it, pass inputs to the reusable, e.g.:
+# By default the reusable updates *every* behind PR (`eligibility: all`). The
+# `eligibility` input is a tunable extension point for future modes; to select
+# one, pass it to the reusable, e.g.:
 #
 #   with:
-#     eligibility: review-ready      # default; or `all` to update every behind PR
-#     ready_label: auto-rebase:ready # label that opts a non-draft PR in
+#     eligibility: all  # default — update every behind PR
 #
 name: Auto-rebase non-Dependabot PRs
 
@@ -132,7 +123,8 @@ jobs:
     permissions:
       contents: write      # update-branch via GITHUB_TOKEN (may touch .github/workflows/)
       pull-requests: write # post comments on PRs
-    uses: petry-projects/.github/.github/workflows/auto-rebase-reusable.yml@auto-rebase/stable  # NOSONAR(githubactions:S7637) first-party channel ref
+    uses: petry-projects/.github/.github/workflows/auto-rebase-reusable.yml@auto-rebase/v2-stable  # NOSONAR(githubactions:S7637) first-party channel ref
+    secrets: inherit  # NOSONAR(githubactions:S7635) first-party trusted reusable
 CANONICAL
 )" > "$canon"
   run diff -u -- "$canon" "$STUB"
