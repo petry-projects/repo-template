@@ -116,9 +116,10 @@ jobs:
 
           # kcov not available in ubuntu-24.04 repos; build from source
           if ! command -v kcov >/dev/null 2>&1; then
-            sudo apt-get install -y -qq cmake g++ pkg-config libcurl4-openssl-dev libelf-dev libdw-dev binutils-dev libiberty-dev
-            cd /tmp && git clone --depth 1 https://github.com/SimonKagstrom/kcov.git
-            cd kcov && mkdir build && cd build && cmake .. && make && sudo make install
+            sudo apt-get install -y -qq cmake g++ pkg-config libcurl4-openssl-dev libelf-dev libdw-dev binutils-dev libiberty-dev zlib1g-dev libssl-dev
+            cd /tmp && git clone --depth 1 --branch v43 https://github.com/SimonKagstrom/kcov.git
+            cd kcov && git describe --tags --exact-match HEAD 2>/dev/null | grep -qx 'v43' || { echo "ERROR: kcov checkout is not pinned to v43"; exit 1; }
+            mkdir build && cd build && cmake .. && make && sudo make install
             cd "$GITHUB_WORKSPACE"
           fi
 
