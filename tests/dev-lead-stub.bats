@@ -70,7 +70,7 @@ STUB="${BATS_TEST_DIRNAME}/../.github/workflows/dev-lead.yml"
 # https://github.com/petry-projects/.github/blob/main/standards/ci-standards.md#reusable-workflow-versioning--the-stable-channel.
 #
 # REQUIRED secrets: CLAUDE_CODE_OAUTH_TOKEN
-# OPTIONAL secrets: GH_PAT_WORKFLOWS, GOOGLE_API_KEY, GH_PAT_DON_PETRY
+# OPTIONAL secrets: GH_PAT_WORKFLOWS, GOOGLE_API_KEY, GH_PAT
 # ─────────────────────────────────────────────────────────────────────────────
 
 name: Dev-Lead Agent
@@ -108,8 +108,7 @@ jobs:
     uses: petry-projects/.github-private/.github/workflows/dev-lead-reusable.yml@dev-lead/v1-stable  # NOSONAR(githubactions:S7637) first-party channel ref
     with:
       agent_ref: dev-lead/v1-stable
-    secrets:
-      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+    secrets: inherit  # NOSONAR(githubactions:S7635) first-party trusted reusable
     permissions:
       contents: write
       pull-requests: write
