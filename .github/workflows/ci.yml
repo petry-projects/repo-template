@@ -119,7 +119,7 @@ jobs:
             sudo apt-get install -y -qq cmake g++ pkg-config libcurl4-openssl-dev libelf-dev libdw-dev binutils-dev libiberty-dev
             cd /tmp && git clone --depth 1 https://github.com/SimonKagstrom/kcov.git
             cd kcov && mkdir build && cd build && cmake .. && make && sudo make install
-            cd /
+            cd "$GITHUB_WORKSPACE"
           fi
 
           mkdir -p coverage
