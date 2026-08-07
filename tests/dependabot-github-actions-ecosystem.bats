@@ -21,8 +21,7 @@ GHA_SELECT='.updates[] | select(.["package-ecosystem"] == "github-actions")'
 
 setup() {
   if ! command -v yq >/dev/null 2>&1; then
-    echo "yq is required but not installed" >&2
-    return 1
+    skip "yq is required but not installed"
   fi
 }
 
@@ -65,6 +64,20 @@ setup() {
 
 @test "github-actions entry carries the security and dependencies labels" {
   run yq "$GHA_SELECT | .labels[]" "$DEPENDABOT"
+  [ "$status" -eq 0 ]
+  echo "$output" | grep -q "^security$"
+  echo "$output" | grep -q "^dependencies$"
+}
+
+@test "pre-existing npm ecosystem entry is preserved (no regression)" {
+  run yq '[.updates[] | select(.["package-ecosystem"] == "npm")] | length' "$DEPENDABOT"
+  [ "$status" -eq 0 ]
+  [ "$output" -eq 1 ] || {
+    echo "Expected exactly one npm ecosystem entry, found: $output"
+    return 1
+  }
+
+  run yq '.updates[] | select(.["package-ecosystem"] == "npm") | .labels[]' "$DEPENDABOT"
   [ "$status" -eq 0 ]
   echo "$output" | grep -q "^security$"
   echo "$output" | grep -q "^dependencies$"
