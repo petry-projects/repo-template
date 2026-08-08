@@ -26,7 +26,7 @@ END_MARKER='# <<< END petry-projects secrets baseline <<<'
 # the same way pp_check_gitignore_baseline does: extract the span, then
 # `printf '%s' "$span" | sha256sum` (command substitution strips the trailing
 # newline, so the hash is trailing-newline tolerant).
-GITIGNORE_L1_SHA256='1d4a83d95f8ee135aee79215b022dce1ac1cf8e049642ef9e82f1a80b691bc37'
+GITIGNORE_L1_SHA256='cb145edb05293e0ef888d57a77ab68e1a2fbe23fb91f91329b223055e63020f9'
 
 # Extract the L1 secrets-baseline span (markers inclusive) from stdin, mirroring
 # pp_extract_baseline_block. Prints nothing and exits non-zero if the block is
@@ -87,10 +87,11 @@ extract_l1_span() {
   }
 }
 
-@test "SOPS/age-encrypted files (.enc.yaml) are not ignored" {
-  # *.secret.* is ignored (section 11), but !*.enc.yaml re-allows encrypted variants.
+@test "SOPS/age-encrypted files (.enc.yaml) are ignored by default" {
+  # *.secret.* is ignored (section 11). Encrypted variants are not re-allowed in the
+  # baseline; repository-specific exceptions can be added below the END marker.
   run git -C "$BATS_TEST_DIRNAME/.." check-ignore --no-index "config.secret.enc.yaml"
-  [ "$status" -ne 0 ]
+  [ "$status" -eq 0 ]
 }
 
 @test "public certificate files (.crt) are not ignored" {
