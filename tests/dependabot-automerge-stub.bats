@@ -29,10 +29,10 @@ STUB="${BATS_TEST_DIRNAME}/../.github/workflows/dependabot-automerge.yml"
   # (petry-projects/.github/standards/workflows/dependabot-automerge.yml) changes.
   local canon
   canon="$(mktemp)"
-  # The committed stub has NO trailing newline, so emit the heredoc with its
-  # trailing newline stripped (printf '%s') to stay byte-faithful to the committed,
+  # The committed stub HAS a trailing newline, so emit the heredoc with its
+  # trailing newline included to stay byte-faithful to the committed,
   # production stub that the fleet stub-drift monitor compares SHAs against.
-  printf '%s' "$(cat << 'CANONICAL'
+  cat > "$canon" << 'CANONICAL'
 # ─────────────────────────────────────────────────────────────────────────────
 # SOURCE OF TRUTH: petry-projects/.github/standards/workflows/dependabot-automerge.yml
 # Standard:        petry-projects/.github/standards/dependabot-policy.md
@@ -73,7 +73,6 @@ jobs:
     uses: petry-projects/.github/.github/workflows/dependabot-automerge-reusable.yml@dependabot-automerge/v2-stable  # NOSONAR(githubactions:S7637) first-party channel ref
     secrets: inherit  # NOSONAR(githubactions:S7635) first-party trusted reusable
 CANONICAL
-)" > "$canon"
   run diff -u "$canon" "$STUB"
   rm -f "$canon"
   [ "$status" -eq 0 ] || {
