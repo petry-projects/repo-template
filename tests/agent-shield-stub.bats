@@ -11,7 +11,7 @@
 # trigger events, and top-level `permissions:` block are drift-protected and
 # MUST NOT be edited in the caller (see the file's own "AGENTS — READ BEFORE
 # EDITING" banner and ci-standards.md → Centralization tiers). In particular the
-# ref MUST be pinned to the `agent-shield/stable` channel.
+# ref MUST be pinned to the `agent-shield/v2-stable` channel.
 # This guard pins those invariants so drift is caught in CI rather than in
 # production run health.
 
@@ -62,7 +62,7 @@ permissions:
 
 jobs:
   agent-shield:
-    uses: petry-projects/.github/.github/workflows/agent-shield-reusable.yml@agent-shield/stable  # NOSONAR(githubactions:S7637) first-party channel ref
+    uses: petry-projects/.github/.github/workflows/agent-shield-reusable.yml@agent-shield/v2-stable  # NOSONAR(githubactions:S7637) first-party channel ref
 CANONICAL
 )" > "$canon"
   run diff -u "$canon" "$STUB"
@@ -74,24 +74,24 @@ CANONICAL
   }
 }
 
-@test "uses: ref is pinned to the agent-shield/stable channel" {
-  grep -qF 'uses: petry-projects/.github/.github/workflows/agent-shield-reusable.yml@agent-shield/stable' "$STUB"
+@test "uses: ref is pinned to the agent-shield/v2-stable channel" {
+  grep -qE 'uses: petry-projects/\.github/\.github/workflows/agent-shield-reusable\.yml@agent-shield/v[0-9]+-stable' "$STUB"
 }
 
 @test "uses: ref is not repointed to @main, a SHA, or a frozen @vN" {
   if grep -qE 'agent-shield-reusable\.yml@(main|[0-9a-f]{7,40}|v[0-9]+([[:space:]#]|$))' "$STUB"; then
     echo "Error: The uses: ref in $STUB is pointed to a forbidden ref (main, SHA, or frozen vN)." >&2
-    echo "It must be pinned to the agent-shield/stable channel." >&2
+    echo "It must be pinned to the agent-shield/v2-stable channel." >&2
     return 1
   fi
 }
 
 @test "uses: ref is not pinned to a frozen or SHA ref" {
-  # The ref must be pinned to a stable channel (agent-shield/stable), not a frozen version
+  # The ref must be pinned to a stable channel (agent-shield/v2-stable), not a frozen version
   # (@agent-shield/vN) or a SHA commit.
   if grep -qE 'agent-shield-reusable\.yml@(main|[0-9a-f]{7,40}|v[0-9]+)' "$STUB"; then
     echo "Error: The uses: ref in $STUB is pinned to a forbidden ref (main, SHA, or frozen vN)." >&2
-    echo "It must be pinned to the agent-shield/stable channel." >&2
+    echo "It must be pinned to the agent-shield/v2-stable channel." >&2
     return 1
   fi
 }
