@@ -94,8 +94,7 @@ STUB="${BATS_TEST_DIRNAME}/../.github/workflows/auto-rebase.yml"
 #
 # Auto-rebase non-Dependabot PRs — thin caller for the org-level reusable.
 # To adopt: copy this file to .github/workflows/auto-rebase.yml in your repo.
-# No explicit secret mapping is required. Available secrets are inherited by the
-# first-party reusable workflow.
+# No secrets required — uses GITHUB_TOKEN only.
 #
 # By default the reusable updates *every* behind PR (`eligibility: all`). The
 # `eligibility` input is a tunable extension point for future modes; to select
