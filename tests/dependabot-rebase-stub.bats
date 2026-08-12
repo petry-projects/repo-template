@@ -29,9 +29,9 @@ STUB="${BATS_TEST_DIRNAME}/../.github/workflows/dependabot-rebase.yml"
   canon="$(mktemp)"
   # The committed stub has NO trailing newline — unlike pr-review-mention.yml
   # which ships with one — so emit the heredoc with its trailing newline
-  # stripped (printf '%s') to stay byte-faithful to the committed, production stub
+  # added (printf '%s\n') to stay byte-faithful to the committed, production stub
   # that the fleet stub-drift monitor compares SHAs against.
-  printf '%s' "$(cat << 'CANONICAL'
+  printf '%s\n' "$(cat << 'CANONICAL'
 # ─────────────────────────────────────────────────────────────────────────────
 # SOURCE OF TRUTH: petry-projects/.github/standards/workflows/dependabot-rebase.yml
 # Standard:        petry-projects/.github/standards/dependabot-policy.md
