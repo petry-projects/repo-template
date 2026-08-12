@@ -57,10 +57,14 @@ jobs:
         run: echo "CI stub — add your stack's lint/format/typecheck/test/coverage steps; see BOOTSTRAP.md."
 
       - name: Install bats
-        run: sudo apt-get install -y bats
+        # Refresh the package index first — installing against the runner image's
+        # stale cached index fails intermittently ("Unable to locate package").
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq bats
 
       - name: Run compliance regression tests
-        run: bats tests/ci-secret-scan.bats tests/dev-lead-stub.bats tests/code-quality-ruleset.bats
+        run: bats tests/ci-secret-scan.bats tests/ci-runner-setup.bats tests/dev-lead-stub.bats tests/code-quality-ruleset.bats
 
 
   # Canonical secret-scan job — copied verbatim from push-protection.md#required-ci-job.
@@ -97,7 +101,9 @@ jobs:
         run: gitleaks detect --source . --config .gitleaks.toml --redact --verbose --exit-code 1
 
   # Stack-aware coverage — produces the `coverage` required check. Default stack is
-  # shell/bats via kcov. GREEN-UNTIL-TESTS: when a stack emits no coverage yet, the
+  # shell/bats (kcov is not in the Ubuntu runner's apt repos, so it is not used here;
+  # add a coverage tool that resolves when you wire up a real stack — see below).
+  # GREEN-UNTIL-TESTS: when a stack emits no coverage yet, the
   # job succeeds without producing a report, so seeding it fleet-wide never bricks a
   # repo that has no test suite. It begins enforcing once tests exist. Add a per-stack
   # block below (keep the job id and `name:` as `coverage` so the required check is stable).
@@ -110,7 +116,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Coverage (shell/bats via kcov)
+      - name: Coverage (shell/bats)
         run: |
           shopt -s globstar nullglob
           bats_files=(tests/**/*.bats)
