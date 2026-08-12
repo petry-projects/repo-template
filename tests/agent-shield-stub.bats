@@ -27,9 +27,9 @@ STUB="${BATS_TEST_DIRNAME}/../.github/workflows/agent-shield.yml"
   local canon
   canon="$(mktemp)"
   # The committed stub has NO trailing newline, so emit the heredoc with its
-  # trailing newline stripped (printf '%s') to stay byte-faithful to the
+  # trailing newline added (printf '%s\n') to stay byte-faithful to the
   # committed, production stub that the fleet stub-drift monitor compares SHAs against.
-  printf '%s' "$(cat << 'CANONICAL'
+  printf '%s\n' "$(cat << 'CANONICAL'
 # ─────────────────────────────────────────────────────────────────────────────
 # SOURCE OF TRUTH: petry-projects/.github/standards/workflows/agent-shield.yml
 # Standard:        petry-projects/.github/standards/agent-standards.md
