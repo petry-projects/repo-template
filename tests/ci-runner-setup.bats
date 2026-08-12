@@ -15,8 +15,8 @@ CI_YML="${BATS_TEST_DIRNAME}/../.github/workflows/ci.yml"
 # top-level job key — so an assertion can be scoped to a single job.
 job_block() {
   awk -v job="$1" '
-    $0 ~ "^  " job ":$" { f = 1; print; next }
-    f && /^  [A-Za-z][A-Za-z0-9_-]*:$/ { f = 0 }
+    $0 ~ "^  " job ":[[:space:]]*(#.*)?$" { f = 1; print; next }
+    f && (/^  [A-Za-z][A-Za-z0-9_-]*:[[:space:]]*(#.*)?$/ || /^[A-Za-z]/) { f = 0 }
     f { print }
   ' "$CI_YML"
 }
@@ -27,8 +27,8 @@ job_block() {
 
 @test "build-and-test refreshes the apt cache before installing packages" {
   block="$(job_block build-and-test)"
-  update_line="$(printf '%s\n' "$block" | grep -nE 'apt-get[[:space:]]+update' | head -1 | cut -d: -f1)"
-  install_line="$(printf '%s\n' "$block" | grep -nE 'apt-get[[:space:]]+install' | head -1 | cut -d: -f1)"
+  update_line="$(printf '%s\n' "$block" | grep -nE 'apt(-get)?([[:space:]]+-[a-zA-Z0-9-]+)*[[:space:]]+update' | head -1 | cut -d: -f1)"
+  install_line="$(printf '%s\n' "$block" | grep -nE 'apt(-get)?([[:space:]]+-[a-zA-Z0-9-]+)*[[:space:]]+install' | head -1 | cut -d: -f1)"
   # An install must be present, and an update must run before it so a stale
   # package index can never turn "install bats" into a hard failure.
   [ -n "$install_line" ]
@@ -38,8 +38,8 @@ job_block() {
 
 @test "coverage refreshes the apt cache before installing packages" {
   block="$(job_block coverage)"
-  update_line="$(printf '%s\n' "$block" | grep -nE 'apt-get[[:space:]]+update' | head -1 | cut -d: -f1)"
-  install_line="$(printf '%s\n' "$block" | grep -nE 'apt-get[[:space:]]+install' | head -1 | cut -d: -f1)"
+  update_line="$(printf '%s\n' "$block" | grep -nE 'apt(-get)?([[:space:]]+-[a-zA-Z0-9-]+)*[[:space:]]+update' | head -1 | cut -d: -f1)"
+  install_line="$(printf '%s\n' "$block" | grep -nE 'apt(-get)?([[:space:]]+-[a-zA-Z0-9-]+)*[[:space:]]+install' | head -1 | cut -d: -f1)"
   [ -n "$install_line" ]
   [ -n "$update_line" ]
   [ "$update_line" -lt "$install_line" ]
@@ -49,5 +49,5 @@ job_block() {
   # kcov is absent from the Ubuntu runner's apt repositories; installing it is the
   # documented root cause of issue #152. Any coverage stack must install a package
   # that actually resolves.
-  ! grep -qE 'apt(-get)?[[:space:]]+install.*\bkcov\b' "$CI_YML"
+  ! grep -qE 'apt(-get)?[[:space:]]+install.*[[:space:]]kcov([[:space:]]|$)' "$CI_YML"
 }
