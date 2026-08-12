@@ -118,7 +118,6 @@ extract_l1_span() {
   [ "$status" -eq 0 ]
 }
 
-
 @test ".env.vault is not ignored (dotenv-vault encrypted ciphertext, required to commit)" {
   # .env.* catches .env.vault, but !.env.vault re-allows it — the file holds only
   # encrypted ciphertext and dotenv-vault requires it to be committed for CI/prod decryption.
