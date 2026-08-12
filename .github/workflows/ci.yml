@@ -105,7 +105,7 @@ jobs:
         run: |
           tarball="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
           url="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/${tarball}"
-          curl -fsSL --proto '=https' --proto-redir '=https' "${url}" -o /tmp/gitleaks.tar.gz
+          wget -q "${url}" -O /tmp/gitleaks.tar.gz
           echo "${GITLEAKS_CHECKSUM}  /tmp/gitleaks.tar.gz" | sha256sum -c
           tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
           sudo mv /tmp/gitleaks /usr/local/bin
@@ -115,9 +115,7 @@ jobs:
         run: gitleaks detect --source . --config .gitleaks.toml --redact --verbose --exit-code 1
 
   # Stack-aware coverage — produces the `coverage` required check. Default stack is
-  # shell/bats (kcov is not in the Ubuntu runner's apt repos, so it is not used here;
-  # add a coverage tool that resolves when you wire up a real stack — see below).
-  # GREEN-UNTIL-TESTS: when a stack emits no coverage yet, the
+  # shell/bats via kcov. GREEN-UNTIL-TESTS: when a stack emits no coverage yet, the
   # job succeeds without producing a report, so seeding it fleet-wide never bricks a
   # repo that has no test suite. It begins enforcing once tests exist. Add a per-stack
   # block below (keep the job id and `name:` as `coverage` so the required check is stable).
@@ -130,7 +128,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Coverage (shell/bats)
+      - name: Coverage (shell/bats via kcov)
         run: |
           shopt -s globstar nullglob
           bats_files=(tests/**/*.bats)
