@@ -47,16 +47,19 @@ jobs:
         with:
           persist-credentials: false
 
-      # ── Replace the step below with your stack's checks ───────────────────────
-      # Standard CI stages: lint, format check, type check, unit tests, coverage
-      # (plus integration / e2e / build where applicable). For example, a Node repo:
-      #   - uses: actions/setup-node@<sha> # vX   (with node-version + cache)
-      #   - run: npm ci
-      #   - run: npm run lint && npm run typecheck && npm test
-      # See BOOTSTRAP.md and the CI standard. Until you add real steps, the
-      # placeholder below keeps the required `build-and-test` check green.
-      - name: Placeholder — replace with real build/test steps
-        run: echo "CI stub — add your stack's lint/format/typecheck/test/coverage steps; see BOOTSTRAP.md."
+      - name: Install bats
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq bats
+      - name: Run tests
+        run: |
+          shopt -s globstar nullglob
+          bats_files=(tests/**/*.bats)
+          if [ ${#bats_files[@]} -eq 0 ]; then
+            echo "No bats tests found."
+            exit 0
+          fi
+          bats "${bats_files[@]}"
 
 
       - name: Install bats
@@ -105,7 +108,7 @@ jobs:
         run: |
           tarball="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
           url="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/${tarball}"
-          wget -q "${url}" -O /tmp/gitleaks.tar.gz
+          curl --proto-redir '=https' -fsSL "${url}" -o /tmp/gitleaks.tar.gz
           echo "${GITLEAKS_CHECKSUM}  /tmp/gitleaks.tar.gz" | sha256sum -c
           tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
           sudo mv /tmp/gitleaks /usr/local/bin
