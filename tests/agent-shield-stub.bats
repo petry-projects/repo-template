@@ -62,7 +62,7 @@ permissions:
 
 jobs:
   agent-shield:
-    uses: petry-projects/.github/.github/workflows/agent-shield-reusable.yml@agent-shield/stable  # NOSONAR(githubactions:S7637) first-party channel ref
+    uses: petry-projects/.github/.github/workflows/agent-shield-reusable.yml@agent-shield/v2-stable  # NOSONAR(githubactions:S7637) first-party channel ref
 CANONICAL
 )" > "$canon"
   run diff -u "$canon" "$STUB"
@@ -81,7 +81,7 @@ CANONICAL
 @test "uses: ref is not repointed to @main, a SHA, or a frozen @vN" {
   if grep -qE 'agent-shield-reusable\.yml@(main|[0-9a-f]{7,40}|v[0-9]+([[:space:]#]|$))' "$STUB"; then
     echo "Error: The uses: ref in $STUB is pointed to a forbidden ref (main, SHA, or frozen vN)." >&2
-    echo "It must be pinned to the agent-shield/stable channel." >&2
+    echo "It must be pinned to the agent-shield/v2-stable channel." >&2
     return 1
   fi
 }
