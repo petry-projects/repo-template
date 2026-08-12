@@ -85,7 +85,7 @@ CANONICAL
 @test "uses: ref is pinned to the dependency-audit/v2-stable channel" {
   # Match the actual `uses:` field (not comments) and anchor the end so a suffix
   # like @dependency-audit/v2-stable-rogue cannot slip through.
-  grep -qE '^\s+uses:\s+petry-projects/\.github/\.github/workflows/dependency-audit-reusable\.yml@dependency-audit/v2-stable(\s|$|#)' "$STUB"
+  grep -qE '^[[:space:]]+uses:[[:space:]]+petry-projects/\.github/\.github/workflows/dependency-audit-reusable\.yml@dependency-audit/v2-stable([[:space:]]|$|#)' "$STUB"
 }
 
 @test "uses: ref is not repointed to @main, a SHA, or a frozen @vN" {
@@ -99,7 +99,8 @@ CANONICAL
 @test "both trigger events are present on the main branch" {
   python3 - "$STUB" <<'PYEOF'
 import yaml, sys
-wf = yaml.safe_load(open(sys.argv[1], encoding="utf-8"))
+with open(sys.argv[1], encoding="utf-8") as f:
+    wf = yaml.safe_load(f)
 # PyYAML (YAML 1.1) parses the bare key 'on' as boolean True
 on = wf.get(True) or wf.get('on') or {}
 for event in ('pull_request', 'push'):
@@ -116,7 +117,8 @@ PYEOF
 @test "top-level permissions grant exactly contents: read (least privilege)" {
   python3 - "$STUB" <<'PYEOF'
 import yaml, sys
-wf = yaml.safe_load(open(sys.argv[1], encoding="utf-8"))
+with open(sys.argv[1], encoding="utf-8") as f:
+    wf = yaml.safe_load(f)
 perms = wf.get('permissions', {}) or {}
 if perms != {'contents': 'read'}:
     print(f"Top-level permissions must be exactly {{'contents': 'read'}}, got {perms}")
@@ -129,7 +131,8 @@ PYEOF
   # not widen the effective token (no job-level permissions) or forward secrets.
   python3 - "$STUB" <<'PYEOF'
 import yaml, sys
-wf = yaml.safe_load(open(sys.argv[1], encoding="utf-8"))
+with open(sys.argv[1], encoding="utf-8") as f:
+    wf = yaml.safe_load(f)
 job = wf.get('jobs', {}).get('dependency-audit', {}) or {}
 if 'permissions' in job:
     print(f"Job must not declare its own permissions (inherits contents: read), got {job['permissions']}")
