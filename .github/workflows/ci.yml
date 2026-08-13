@@ -59,13 +59,24 @@ jobs:
 
       - name: Install bats
         # Refresh the package index first — installing against the runner image's
-        # stale cached index fails intermittently ("Unable to locate package").
+        # stale cached index fails intermittently ("Unable to locate package") — then
+        # retry the whole update+install so a *transient* apt/network failure
+        # (temporary DNS failure, hash-sum mismatch, a briefly-unavailable mirror)
+        # is retried instead of hard-failing the run on the first attempt.
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq bats python3-yaml
+          for attempt in 1 2 3; do
+            sudo apt-get update -qq \
+              && sudo apt-get install -y -qq bats python3-yaml \
+              && break
+            echo "::warning::apt install of bats failed (attempt ${attempt}/3); retrying in 5s" >&2
+            sleep 5
+          done
+          # Fail loudly if every attempt was exhausted, rather than silently
+          # continuing to the test step with bats missing.
+          command -v bats >/dev/null || { echo "::error::bats install failed after 3 attempts" >&2; exit 1; }
 
       - name: Run compliance regression tests
-        run: bats tests/ci-secret-scan.bats tests/ci-runner-setup.bats tests/dev-lead-stub.bats tests/code-quality-ruleset.bats
+        run: bats tests/ci-secret-scan.bats tests/ci-runner-setup.bats tests/ci-apt-retry.bats tests/dev-lead-stub.bats tests/code-quality-ruleset.bats
 
 
   # Canonical secret-scan job — copied verbatim from push-protection.md#required-ci-job.
