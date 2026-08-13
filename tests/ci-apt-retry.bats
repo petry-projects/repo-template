@@ -36,22 +36,47 @@ assert_apt_install_is_retried() {
   local job="$1" block
   block="$(job_block "$job")"
 
-  local install_line update_line loop_line sleep_line
-  install_line="$(first_line "$block" 'apt(-get)?([[:space:]]+-[a-zA-Z0-9-]+)*[[:space:]]+install')"
-  update_line="$(first_line "$block" 'apt(-get)?([[:space:]]+-[a-zA-Z0-9-]+)*[[:space:]]+update')"
-  loop_line="$(first_line "$block" '^[[:space:]]*(for|while|until)[[:space:]]')"
-  sleep_line="$(first_line "$block" '^[[:space:]]*sleep[[:space:]]')"
-
-  # An install must exist, and an update must precede it (preserves the #152 fix).
-  [ -n "$install_line" ] || { echo "$job: no apt install found"; return 1; }
-  [ -n "$update_line" ] || { echo "$job: no apt update found"; return 1; }
-  [ "$update_line" -lt "$install_line" ] || { echo "$job: apt update must precede install"; return 1; }
-
-  # A retry loop must open before the install, and a backoff sleep must be present,
-  # so a transient apt failure is retried rather than failing the run outright.
+  # Locate the retry-loop opener as a whole word so that one-liner loops
+  # (e.g. `for i in {1..5}; do ... || sleep 5; done`) are also matched.
+  local loop_line
+  loop_line="$(first_line "$block" '([[:space:]]|^)(for|while|until)[[:space:]]')"
   [ -n "$loop_line" ] || { echo "$job: apt install is not wrapped in a retry loop"; return 1; }
-  [ "$loop_line" -lt "$install_line" ] || { echo "$job: retry loop must open before the apt install"; return 1; }
+
+  # Find the `done` that closes the loop so assertions can be scoped to its body.
+  local done_line
+  done_line="$(printf '%s\n' "$block" | awk -v lo="$loop_line" '
+    NR > lo && /^[[:space:]]*done([[:space:]]|$)/ { print NR; exit }
+  ')"
+  [ -n "$done_line" ] || { echo "$job: retry loop has no closing done"; return 1; }
+
+  # Extract the bounded retry-loop body and the lines that follow it.
+  local loop_body after_loop
+  loop_body="$(printf '%s\n' "$block" | awk -v lo="$loop_line" -v hi="$done_line" 'NR >= lo && NR <= hi')"
+  after_loop="$(printf '%s\n' "$block" | awk -v lo="$done_line" 'NR > lo')"
+
+  # The loop must be bounded to three attempts.
+  printf '%s\n' "$loop_body" | grep -qE 'in[[:space:]]+(1[[:space:]]+2[[:space:]]+3|\{1\.\.3\})' \
+    || { echo "$job: retry loop is not bounded to 3 attempts"; return 1; }
+
+  # apt update and apt install must both appear inside the loop body (preserves
+  # the #152 fix that update must precede install, now scoped to the loop).
+  local update_line install_line
+  update_line="$(first_line "$loop_body" 'apt(-get)?([[:space:]]+-[a-zA-Z0-9-]+)*[[:space:]]+update')"
+  install_line="$(first_line "$loop_body" 'apt(-get)?([[:space:]]+-[a-zA-Z0-9-]+)*[[:space:]]+install')"
+  [ -n "$update_line" ] || { echo "$job: apt update not found inside the retry loop"; return 1; }
+  [ -n "$install_line" ] || { echo "$job: apt install not found inside the retry loop"; return 1; }
+  [ "$update_line" -lt "$install_line" ] || { echo "$job: apt update must precede install inside the loop"; return 1; }
+
+  # A backoff sleep must appear inside the loop body (matched as a word so
+  # mid-line occurrences like `... || sleep 5; done` are also caught).
+  local sleep_line
+  sleep_line="$(first_line "$loop_body" '([[:space:]]|^)sleep[[:space:]]')"
   [ -n "$sleep_line" ] || { echo "$job: retry loop has no backoff sleep"; return 1; }
+
+  # A post-loop failure gate (`command -v`) must exist after the closing done
+  # so an exhausted retry loop fails loudly rather than continuing silently.
+  printf '%s\n' "$after_loop" | grep -qE 'command[[:space:]]+-v' \
+    || { echo "$job: no post-loop command -v failure check after the retry loop"; return 1; }
 }
 
 @test "ci.yml exists at the expected path" {
