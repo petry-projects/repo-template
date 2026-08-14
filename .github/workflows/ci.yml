@@ -92,7 +92,7 @@ jobs:
       contents: read
     steps:
       - name: Checkout (full history)
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -116,9 +116,7 @@ jobs:
         run: gitleaks detect --source . --config .gitleaks.toml --redact --verbose --exit-code 1
 
   # Stack-aware coverage — produces the `coverage` required check. Default stack is
-  # shell/bats (kcov is not in the Ubuntu runner's apt repos, so it is not used here;
-  # add a coverage tool that resolves when you wire up a real stack — see below).
-  # GREEN-UNTIL-TESTS: when a stack emits no coverage yet, the
+  # shell/bats via kcov. GREEN-UNTIL-TESTS: when a stack emits no coverage yet, the
   # job succeeds without producing a report, so seeding it fleet-wide never bricks a
   # repo that has no test suite. It begins enforcing once tests exist. Add a per-stack
   # block below (keep the job id and `name:` as `coverage` so the required check is stable).
@@ -129,11 +127,11 @@ jobs:
       contents: read
     steps:
       - name: Checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
 
-      - name: Coverage (shell/bats)
+      - name: Coverage (shell/bats via kcov)
         run: |
           shopt -s globstar nullglob
           bats_files=(tests/**/*.bats)
