@@ -58,6 +58,7 @@ jobs:
       - name: Placeholder — replace with real build/test steps
         run: echo "CI stub — add your stack's lint/format/typecheck/test/coverage steps; see BOOTSTRAP.md."
 
+
       - name: Install bats
         # Refresh the package index first — installing against the runner image's
         # stale cached index fails intermittently ("Unable to locate package") — then
@@ -67,7 +68,7 @@ jobs:
         run: |
           for attempt in 1 2 3; do
             sudo apt-get update -qq \
-              && sudo apt-get install -y -qq bats \
+              && sudo apt-get install -y -qq bats python3-yaml \
               && break
             echo "::warning::apt install of bats failed (attempt ${attempt}/3); retrying in 5s" >&2
             sleep 5
@@ -144,7 +145,7 @@ jobs:
           # retried instead of hard-failing the run on the first attempt.
           for attempt in 1 2 3; do
             sudo apt-get update -qq \
-              && sudo apt-get install -y -qq bats \
+              && sudo apt-get install -y -qq bats python3-yaml \
               && break
             echo "::warning::apt install of bats failed (attempt ${attempt}/3); retrying in 5s" >&2
             sleep 5
