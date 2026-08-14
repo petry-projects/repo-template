@@ -56,6 +56,28 @@ jobs:
       - name: Placeholder — replace with real build/test steps
         run: echo "CI stub — add your stack's lint/format/typecheck/test/coverage steps; see BOOTSTRAP.md."
 
+      - name: Install bats
+        # Refresh the package index first — installing against the runner image's
+        # stale cached index fails intermittently ("Unable to locate package") — then
+        # retry the whole update+install so a *transient* apt/network failure
+        # (temporary DNS failure, hash-sum mismatch, a briefly-unavailable mirror)
+        # is retried instead of hard-failing the run on the first attempt.
+        run: |
+          for attempt in 1 2 3; do
+            sudo apt-get update -qq \
+              && sudo apt-get install -y -qq bats \
+              && break
+            echo "::warning::apt install of bats failed (attempt ${attempt}/3); retrying in 5s" >&2
+            sleep 5
+          done
+          # Fail loudly if every attempt was exhausted, rather than silently
+          # continuing to the test step with bats missing.
+          command -v bats >/dev/null || { echo "::error::bats install failed after 3 attempts" >&2; exit 1; }
+
+      - name: Run compliance regression tests
+        run: bats tests/ci-secret-scan.bats tests/ci-runner-setup.bats tests/ci-apt-retry.bats tests/dev-lead-stub.bats tests/code-quality-ruleset.bats
+
+
   # Canonical secret-scan job — copied verbatim from push-protection.md#required-ci-job.
   # Produces the `Secret scan (gitleaks)` required check. Uses the gitleaks CLI (not
   # gitleaks/gitleaks-action, whose v2+ needs a paid org license); fully pinned +
@@ -90,7 +112,9 @@ jobs:
         run: gitleaks detect --source . --config .gitleaks.toml --redact --verbose --exit-code 1
 
   # Stack-aware coverage — produces the `coverage` required check. Default stack is
-  # shell/bats via kcov. GREEN-UNTIL-TESTS: when a stack emits no coverage yet, the
+  # shell/bats (kcov is not in the Ubuntu runner's apt repos, so it is not used here;
+  # add a coverage tool that resolves when you wire up a real stack — see below).
+  # GREEN-UNTIL-TESTS: when a stack emits no coverage yet, the
   # job succeeds without producing a report, so seeding it fleet-wide never bricks a
   # repo that has no test suite. It begins enforcing once tests exist. Add a per-stack
   # block below (keep the job id and `name:` as `coverage` so the required check is stable).
@@ -103,7 +127,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Coverage (shell/bats via kcov)
+      - name: Coverage (shell/bats)
         run: |
           shopt -s globstar nullglob
           bats_files=(tests/**/*.bats)
@@ -111,11 +135,17 @@ jobs:
             echo "No bats tests found — coverage is green until tests exist."
             exit 0
           fi
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq bats kcov
-          mkdir -p coverage
-          kcov --include-path=. --exclude-path=tests,coverage coverage bats "${bats_files[@]}"
-          echo "Coverage report written to ./coverage"
+          # Retry the apt update+install so a transient apt/network failure is
+          # retried instead of hard-failing the run on the first attempt.
+          for attempt in 1 2 3; do
+            sudo apt-get update -qq \
+              && sudo apt-get install -y -qq bats \
+              && break
+            echo "::warning::apt install of bats failed (attempt ${attempt}/3); retrying in 5s" >&2
+            sleep 5
+          done
+          command -v bats >/dev/null || { echo "::error::bats install failed after 3 attempts" >&2; exit 1; }
+          bats "${bats_files[@]}"
 
       # ── Per-stack expansion — replace/augment the shell block above for your stack.
       #    Keep the job id and `name:` as `coverage` so the required check is unchanged.
