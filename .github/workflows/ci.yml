@@ -78,7 +78,7 @@ jobs:
           command -v bats >/dev/null || { echo "::error::bats install failed after 3 attempts" >&2; exit 1; }
 
       - name: Run compliance regression tests
-        run: bats tests/ci-secret-scan.bats tests/ci-runner-setup.bats tests/ci-apt-retry.bats tests/dev-lead-stub.bats tests/code-quality-ruleset.bats
+        run: bats tests/ci-secret-scan.bats tests/ci-runner-setup.bats tests/ci-apt-retry.bats tests/dev-lead-stub.bats tests/code-quality-ruleset.bats tests/pr-quality-ruleset.bats
 
 
   # Canonical secret-scan job — copied verbatim from push-protection.md#required-ci-job.
