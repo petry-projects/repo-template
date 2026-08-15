@@ -113,8 +113,10 @@ jobs:
           # coverage (see ci-apt-retry.bats).
           for attempt in 1 2 3; do
             curl -fsSL --proto '=https' --proto-redir '=https' "${url}" -o /tmp/gitleaks.tar.gz && break
-            echo "::warning::gitleaks download failed (attempt ${attempt}/3); retrying in 5s" >&2
-            sleep 5
+            if [ "$attempt" -lt 3 ]; then
+              echo "::warning::gitleaks download failed (attempt ${attempt}/3); retrying in 5s" >&2
+              sleep 5
+            fi
           done
           # Fail loudly if every attempt was exhausted, rather than continuing to
           # checksum a missing or partial tarball.

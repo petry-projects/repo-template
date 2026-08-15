@@ -17,7 +17,7 @@ job_block() {
   ' "$CI_YML"
 }
 
-# First line number (within a block passed on stdin as $1) matching a regex.
+# First line number (within a block passed as the first argument $1) matching a regex.
 first_line() {
   printf '%s\n' "$1" | grep -nE "$2" | head -1 | cut -d: -f1
 }
@@ -77,14 +77,17 @@ first_line() {
   after_loop="$(printf '%s\n' "$block" | awk -v lo="$done_line" 'NR > lo')"
 
   # The loop must be bounded to three attempts.
-  printf '%s\n' "$loop_body" | grep -qE 'in[[:space:]]+(1[[:space:]]+2[[:space:]]+3|\{1\.\.3\})' \
+  printf '%s\n' "$loop_body" | grep -qE 'in[[:space:]]+(1[[:space:]]+2[[:space:]]+3|[{]1\.\.3[}])' \
     || { echo "secret-scan: retry loop is not bounded to 3 attempts"; return 1; }
 
   # The gitleaks download (curl) must live inside the retry loop.
   [ -n "$(first_line "$loop_body" '([[:space:]]|^)curl[[:space:]]')" ] \
     || { echo "secret-scan: curl download not found inside the retry loop"; return 1; }
 
-  # A backoff sleep must appear inside the loop body.
+  # The backoff sleep must be guarded by an attempt-less-than-3 check so the
+  # final attempt does not emit a spurious "retrying" message or waste 5 s.
+  printf '%s\n' "$loop_body" | grep -qE '\[.*"?\$attempt"?[[:space:]]+-lt[[:space:]]+3' \
+    || { echo "secret-scan: retry sleep is not guarded by attempt < 3 check"; return 1; }
   [ -n "$(first_line "$loop_body" '([[:space:]]|^)sleep[[:space:]]')" ] \
     || { echo "secret-scan: retry loop has no backoff sleep"; return 1; }
 
