@@ -23,7 +23,8 @@ RULESET_JSON="${BATS_TEST_DIRNAME}/../standards/rulesets/pr-quality.json"
 pr_param() {
   python3 - "$RULESET_JSON" "$1" << 'PY'
 import json, sys
-data = json.load(open(sys.argv[1]))
+with open(sys.argv[1], encoding='utf-8') as f:
+    data = json.load(f)
 rule = next(r for r in data["rules"] if r["type"] == "pull_request")
 print(json.dumps(rule["parameters"][sys.argv[2]]))
 PY
@@ -34,14 +35,18 @@ PY
 }
 
 @test "codified pr-quality ruleset is valid JSON" {
-  python3 -c 'import json,sys; json.load(open(sys.argv[1]))' "$RULESET_JSON"
+  python3 -c 'import json,sys
+with open(sys.argv[1], encoding="utf-8") as f:
+    json.load(f)' "$RULESET_JSON"
 }
 
 @test "ruleset targets the default branch with active enforcement" {
-  run python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); print(d["enforcement"], d["conditions"]["ref_name"]["include"])' "$RULESET_JSON"
+  run python3 -c 'import json,sys
+with open(sys.argv[1], encoding="utf-8") as f:
+    d = json.load(f)
+print(json.dumps({"target": d["target"], "enforcement": d["enforcement"], "include": d["conditions"]["ref_name"]["include"], "exclude": d["conditions"]["ref_name"]["exclude"]}, separators=(",", ":")))' "$RULESET_JSON"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"active"* ]]
-  [[ "$output" == *"~DEFAULT_BRANCH"* ]]
+  [ "$output" = '{"target":"branch","enforcement":"active","include":["~DEFAULT_BRANCH"],"exclude":[]}' ]
 }
 
 @test "require_last_push_approval is enabled (guards issue #145 drift)" {
