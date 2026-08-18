@@ -14,17 +14,3 @@ updates:
     labels:
       - "security"
       - "dependencies"
-
-  # github-actions — version updates on a weekly schedule (all repos).
-  # Actions are SHA-pinned and CI catches breaking interface changes, so the
-  # auto-merge workflow approves all version bumps; limit 10 permits version
-  # updates rather than the 0 applied to application ecosystems.
-  # See standards/dependabot-policy.md#github-actions-all-repos.
-  - package-ecosystem: "github-actions"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-    open-pull-requests-limit: 10
-    labels:
-      - "security"
-      - "dependencies"
