@@ -26,7 +26,7 @@ END_MARKER='# <<< END petry-projects secrets baseline <<<'
 # the same way pp_check_gitignore_baseline does: extract the span, then
 # `printf '%s' "$span" | sha256sum` (command substitution strips the trailing
 # newline, so the hash is trailing-newline tolerant).
-GITIGNORE_L1_SHA256='cb145edb05293e0ef888d57a77ab68e1a2fbe23fb91f91329b223055e63020f9'
+GITIGNORE_L1_SHA256='1d4a83d95f8ee135aee79215b022dce1ac1cf8e049642ef9e82f1a80b691bc37'
 
 # Extract the L1 secrets-baseline span (markers inclusive) from stdin, mirroring
 # pp_extract_baseline_block. Prints nothing and exits non-zero if the block is
@@ -87,11 +87,13 @@ extract_l1_span() {
   }
 }
 
-@test "SOPS/age-encrypted files (.enc.yaml) are ignored by default" {
-  # *.secret.* is ignored (section 11). Encrypted variants are not re-allowed in the
-  # baseline; repository-specific exceptions can be added below the END marker.
+@test "SOPS/age-encrypted files (.enc.yaml) are re-allowed by default" {
+  # The baseline re-allows *.enc.yaml in both section 3 (helm-secrets) and section 11
+  # (SOPS/age). The !*.enc.yaml negation appears after *.secret.* in the file, so
+  # git evaluates the negation last and re-allows the file — encrypted variants are
+  # safe to commit.
   run git -C "$BATS_TEST_DIRNAME/.." check-ignore --no-index "config.secret.enc.yaml"
-  [ "$status" -eq 0 ]
+  [ "$status" -ne 0 ]
 }
 
 @test "public certificate files (.crt) are not ignored" {
