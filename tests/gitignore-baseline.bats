@@ -122,7 +122,9 @@ extract_l1_span() {
   # .env.* catches .env.vault, but !.env.vault re-allows it — the file holds only
   # encrypted ciphertext and dotenv-vault requires it to be committed for CI/prod decryption.
   run git -C "$BATS_TEST_DIRNAME/.." check-ignore --no-index ".env.vault"
-  [ "$status" -ne 0 ]
+  # check-ignore exits 1 when the path is not ignored; 128 signals an error, so
+  # require exactly 1 rather than any nonzero status.
+  [ "$status" -eq 1 ]
 }
 
 @test "L2 does not re-ignore a baseline-negated dotenv path" {
