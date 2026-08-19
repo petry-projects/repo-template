@@ -92,9 +92,11 @@ values-secrets.yaml
 values-secrets.yml
 *.secrets.yaml
 *.secrets.yml
-# helm-secrets / sops-encrypted values should not have blanket re-allow patterns
-# in the baseline — repository-specific exceptions can be added below the END
-# marker after CI validates the SOPS structure for that repo.
+# helm-secrets / sops-encrypted values are SAFE to commit — re-allow:
+!*.enc.yaml
+!*.enc.yml
+!secrets.enc.yaml
+!secrets.enc.yml
 # Skaffold / Tilt local overrides
 skaffold.local.yaml
 tilt_config.json
@@ -338,9 +340,13 @@ private.yml
 !*.secrets.example
 !secrets.example.*
 !credentials.example.*
-# SOPS/age-encrypted variants should not have blanket re-allow patterns in the
-# baseline — repository-specific exceptions can be added below the END marker
-# after CI validates the SOPS structure for that repo.
+# Re-allow SOPS/age-encrypted variants (safe to commit)
+!*.enc.yaml
+!*.enc.yml
+!*.enc.json
+!*.sops.yaml
+!*.sops.yml
+!*.sops.json
 
 
 # ---------------------------------------------------------------------------
