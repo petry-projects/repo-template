@@ -80,10 +80,14 @@ jobs:
         run: |
           tarball="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
           url="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/${tarball}"
-          wget -q "${url}" -O /tmp/gitleaks.tar.gz
-          echo "${GITLEAKS_CHECKSUM}  /tmp/gitleaks.tar.gz" | sha256sum -c
-          tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
-          sudo mv /tmp/gitleaks /usr/local/bin
+          curl -fsSL --proto '=https' --proto-redir '=https' "${url}" -o /tmp/gitleaks.tar.gz
+          if echo "${GITLEAKS_CHECKSUM}  /tmp/gitleaks.tar.gz" | sha256sum -c; then
+            tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
+            sudo mv /tmp/gitleaks /usr/local/bin
+          else
+            echo "::error::gitleaks checksum verification failed" >&2
+            exit 1
+          fi
 
       - name: Run gitleaks
         # Requires a .gitleaks.toml at repo root (seeded by seed-repo-template.sh).
@@ -111,8 +115,14 @@ jobs:
             echo "No bats tests found — coverage is green until tests exist."
             exit 0
           fi
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq bats kcov
+          for attempt in 1 2 3; do
+            sudo apt-get update -qq \
+              && sudo apt-get install -y -qq bats kcov python3-yaml \
+              && break
+            echo "::warning::apt install failed (attempt ${attempt}/3); retrying in 5s" >&2
+            sleep 5
+          done
+          command -v bats >/dev/null || { echo "::error::bats install failed after 3 attempts" >&2; exit 1; }
           mkdir -p coverage
           kcov --include-path=. --exclude-path=tests,coverage coverage bats "${bats_files[@]}"
           echo "Coverage report written to ./coverage"
