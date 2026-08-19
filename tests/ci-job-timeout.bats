@@ -36,9 +36,9 @@ job_block() {
 runner_jobs() {
   awk '
     /^  [A-Za-z][A-Za-z0-9_-]*:[[:space:]]*(#.*)?$/ {
-      name = $1; sub(/:$/, "", name); job = name; has = 0
+      name = $1; sub(/:$/, "", name); job = name
     }
-    job && /^[[:space:]]+runs-on:/ && !printed[job] {
+    job && /^    runs-on:/ && !printed[job] {
       print job; printed[job] = 1
     }
   ' "$CI_YML"
