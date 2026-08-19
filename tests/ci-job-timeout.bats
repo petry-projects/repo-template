@@ -19,7 +19,14 @@ CI_YML="${BATS_TEST_DIRNAME}/../.github/workflows/ci.yml"
 
 # Upper bound for a sane CI job timeout. Normal runs finish in ~20s (p50); a cap
 # far above that still catches a wedged run well before the 360-minute default.
-MAX_TIMEOUT_MINUTES=30
+#
+# ci.yml is a customize-per-stack stub: an adopter whose build/integration/test
+# steps legitimately run longer can raise this cap by exporting
+# CI_JOB_TIMEOUT_MAX_MINUTES (an explicit, opt-in workflow policy) rather than
+# having a valid longer timeout rejected outright. The guard's intent is only
+# that every job stays *bounded* well below GitHub's 360-minute default, not that
+# it fits one fixed number, so the default stays sane while the cap is tunable.
+MAX_TIMEOUT_MINUTES="${CI_JOB_TIMEOUT_MAX_MINUTES:-30}"
 
 # Print the body of a top-level job block — from `  <job>:` up to the next
 # top-level job key — so an assertion can be scoped to a single job.
