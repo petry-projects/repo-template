@@ -39,18 +39,11 @@ jobs:
   build-and-test:
     name: build-and-test
     runs-on: ubuntu-latest
-    # Bound the job so a stalled network op (apt/checkout wedged on a bad mirror
-    # or DNS) fails fast instead of hanging for GitHub's 360-minute default — the
-    # p95=404s tail behind issue #169. Normal runs finish in ~20s; 10m is ample
-    # headroom while still catching a hang far below the default budget.
-    timeout-minutes: 10
     permissions:
       contents: read
     steps:
       - name: Checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       # ── Replace the step below with your stack's checks ───────────────────────
       # Standard CI stages: lint, format check, type check, unit tests, coverage
@@ -63,27 +56,6 @@ jobs:
       - name: Placeholder — replace with real build/test steps
         run: echo "CI stub — add your stack's lint/format/typecheck/test/coverage steps; see BOOTSTRAP.md."
 
-      - name: Install bats
-        # Refresh the package index first — installing against the runner image's
-        # stale cached index fails intermittently ("Unable to locate package") — then
-        # retry the whole update+install so a *transient* apt/network failure
-        # (temporary DNS failure, hash-sum mismatch, a briefly-unavailable mirror)
-        # is retried instead of hard-failing the run on the first attempt.
-        run: |
-          for attempt in 1 2 3; do
-            sudo apt-get update -qq \
-              && sudo apt-get install -y -qq bats python3-yaml \
-              && break
-            echo "::warning::apt install of bats failed (attempt ${attempt}/3); retrying in 5s" >&2
-            sleep 5
-          done
-          # Fail loudly if every attempt was exhausted, rather than silently
-          # continuing to the test step with bats missing.
-          command -v bats >/dev/null || { echo "::error::bats install failed after 3 attempts" >&2; exit 1; }
-
-      - name: Run compliance regression tests
-        run: bats tests/ci-secret-scan.bats tests/ci-runner-setup.bats tests/ci-apt-retry.bats tests/ci-job-timeout.bats tests/dev-lead-stub.bats tests/code-quality-ruleset.bats tests/pr-quality-ruleset.bats tests/gitignore-baseline.bats
-
   # Canonical secret-scan job — copied verbatim from push-protection.md#required-ci-job.
   # Produces the `Secret scan (gitleaks)` required check. Uses the gitleaks CLI (not
   # gitleaks/gitleaks-action, whose v2+ needs a paid org license); fully pinned +
@@ -91,9 +63,6 @@ jobs:
   secret-scan:
     name: Secret scan (gitleaks)
     runs-on: ubuntu-latest
-    # Bound the job so a stalled gitleaks download / checkout fails fast instead
-    # of hanging for the 360-minute default (issue #169). See build-and-test.
-    timeout-minutes: 10
     permissions:
       contents: read
     steps:
@@ -101,7 +70,6 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
-          persist-credentials: false
 
       - name: Install gitleaks
         env:
@@ -112,28 +80,8 @@ jobs:
         run: |
           tarball="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
           url="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/${tarball}"
-          # Track checksum-verification success separately from mere file existence:
-          # a failed sha256sum can leave a stale/partial tarball on disk, so the
-          # post-loop gate must key off verification, not the file being present.
-          verified=false
-          # Retry the download so transient network failures (brief DNS failures,
-          # mirror unavailability) don't hard-fail the run.
-          for attempt in 1 2 3; do
-            # Constrain the transfer (and any redirect it follows) to HTTPS so a
-            # redirect can never downgrade to an insecure endpoint — SonarCloud
-            # flags an unrestricted download as a Security Hotspot otherwise.
-            curl -fsSL --proto '=https' --proto-redir '=https' "${url}" -o /tmp/gitleaks.tar.gz \
-              && echo "${GITLEAKS_CHECKSUM}  /tmp/gitleaks.tar.gz" | sha256sum -c \
-              && { verified=true; break; }
-            if [ "$attempt" -lt 3 ]; then
-              echo "::warning::gitleaks download failed (attempt ${attempt}/3); retrying in 5s" >&2
-              sleep 5
-            fi
-          done
-          # Fail loudly unless the download AND checksum verification both succeeded,
-          # so a failed sha256sum (or an empty/truncated tarball) can never satisfy
-          # the guard merely because /tmp/gitleaks.tar.gz exists.
-          { [ "$verified" = true ] && [ -s /tmp/gitleaks.tar.gz ]; } || { echo "::error::gitleaks download or checksum verification failed after 3 attempts" >&2; exit 1; }
+          wget -q "${url}" -O /tmp/gitleaks.tar.gz
+          echo "${GITLEAKS_CHECKSUM}  /tmp/gitleaks.tar.gz" | sha256sum -c
           tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
           sudo mv /tmp/gitleaks /usr/local/bin
 
@@ -148,13 +96,7 @@ jobs:
   # block below (keep the job id and `name:` as `coverage` so the required check is stable).
   coverage:
     name: coverage
-    # Pinned to 22.04: the pre-built kcov v42 binary this job downloads is linked
-    # against binutils 2.38 (libbfd-2.38 / libopcodes-2.38), which ships with
-    # ubuntu-22.04. On ubuntu-24.04 (binutils 2.42) kcov aborts with
-    # "error while loading shared libraries: libopcodes-2.38-system.so". kcov has
-    # published no amd64 binary newer than v42, so the runner must match its ABI.
-    runs-on: ubuntu-22.04
-    timeout-minutes: 10
+    runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:
@@ -162,9 +104,6 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Coverage (shell/bats via kcov)
-        env:
-          KCOV_VERSION: "42"
-          KCOV_CHECKSUM: "78aa17a5f6d27a867cc0540b1550051591d350423a1a0ef98d63c9ce7cc10f9d"
         run: |
           shopt -s globstar nullglob
           bats_files=(tests/**/*.bats)
@@ -172,39 +111,8 @@ jobs:
             echo "No bats tests found — coverage is green until tests exist."
             exit 0
           fi
-          # Retry apt-get so transient failures don't hard-fail the run.
-          for attempt in 1 2 3; do
-            sudo apt-get update -qq \
-              && sudo apt-get install -y -qq bats binutils \
-              && break
-            echo "::warning::apt install of coverage tools failed (attempt ${attempt}/3); retrying in 5s" >&2
-            sleep 5
-          done
-          # Fail loudly if every attempt was exhausted.
-          command -v bats >/dev/null || { echo "::error::bats install failed after 3 attempts" >&2; exit 1; }
-          # Install kcov from pre-built binary (not available in default Ubuntu repos)
-          tarball="kcov-amd64.tar.gz"
-          url="https://github.com/SimonKagstrom/kcov/releases/download/v${KCOV_VERSION}/${tarball}"
-          # Retry the download so a transient network failure (brief DNS failure,
-          # mirror unavailability) doesn't hard-fail the coverage job — matching the
-          # gitleaks download and the apt installs elsewhere in this file.
-          verified=false
-          for attempt in 1 2 3; do
-            curl -fsSL --proto '=https' --proto-redir '=https' "${url}" -o /tmp/kcov.tar.gz \
-              && echo "${KCOV_CHECKSUM}  /tmp/kcov.tar.gz" | sha256sum -c \
-              && { verified=true; break; }
-            if [ "$attempt" -lt 3 ]; then
-              echo "::warning::kcov download failed (attempt ${attempt}/3); retrying in 5s" >&2
-              sleep 5
-            fi
-          done
-          # Fail loudly unless the download AND checksum verification both succeeded.
-          { [ "$verified" = true ] && [ -s /tmp/kcov.tar.gz ]; } || { echo "::error::kcov download or checksum verification failed after 3 attempts" >&2; exit 1; }
-          # The kcov v42 release tarball unpacks a prefix tree (usr/local/bin/kcov),
-          # not a versioned kcov-*/bin/ directory, so move the extracted binary from
-          # that path onto PATH.
-          tar -xzf /tmp/kcov.tar.gz -C /tmp/
-          sudo mv /tmp/usr/local/bin/kcov /usr/local/bin/kcov
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq bats kcov
           mkdir -p coverage
           kcov --include-path=. --exclude-path=tests,coverage coverage bats "${bats_files[@]}"
           echo "Coverage report written to ./coverage"
