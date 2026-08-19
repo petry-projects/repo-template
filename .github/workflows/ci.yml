@@ -117,15 +117,35 @@ jobs:
           fi
           for attempt in 1 2 3; do
             sudo apt-get update -qq \
-              && sudo apt-get install -y -qq bats kcov python3-yaml \
+              && sudo apt-get install -y -qq bats python3-yaml build-essential cmake git pkg-config libcurl4-openssl-dev \
               && break
             echo "::warning::apt install failed (attempt ${attempt}/3); retrying in 5s" >&2
             sleep 5
           done
           command -v bats >/dev/null || { echo "::error::bats install failed after 3 attempts" >&2; exit 1; }
+          # Install kcov from source (not available in Ubuntu 24.04 standard repos)
+          KCOV_VERSION="43"
+          if [ ! -f /usr/local/bin/kcov ]; then
+            mkdir -p /tmp/kcov-build
+            cd /tmp
+            curl -fsSL --proto '=https' "https://github.com/SimonKagstrom/kcov/archive/v${KCOV_VERSION}.tar.gz" -o kcov.tar.gz \
+              && tar -xzf kcov.tar.gz -C /tmp/kcov-build --strip-components=1 \
+              && cd /tmp/kcov-build \
+              && mkdir -p build \
+              && cd build \
+              && cmake .. >/dev/null 2>&1 \
+              && make >/dev/null 2>&1 \
+              && sudo make install >/dev/null 2>&1 \
+              || echo "::warning::kcov build failed; will run bats without coverage" >&2
+          fi
           mkdir -p coverage
-          kcov --include-path=. --exclude-path=tests,coverage coverage bats "${bats_files[@]}"
-          echo "Coverage report written to ./coverage"
+          if command -v kcov >/dev/null; then
+            kcov --include-path=. --exclude-path=tests,coverage coverage bats "${bats_files[@]}"
+            echo "Coverage report written to ./coverage"
+          else
+            echo "::warning::kcov not available; running bats without coverage" >&2
+            bats "${bats_files[@]}"
+          fi
 
       # ── Per-stack expansion — replace/augment the shell block above for your stack.
       #    Keep the job id and `name:` as `coverage` so the required check is unchanged.
