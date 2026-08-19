@@ -118,13 +118,14 @@ jobs:
             exit 0
           fi
           sudo apt-get update -qq
-          sudo apt-get install -y -qq bats
+          sudo apt-get install -y -qq bats binutils
           # Install kcov from pre-built binary (not available in default Ubuntu repos)
           tarball="kcov-amd64.tar.gz"
           url="https://github.com/SimonKagstrom/kcov/releases/download/v${KCOV_VERSION}/${tarball}"
           curl -fsSL --proto '=https' --proto-redir '=https' "${url}" -o /tmp/kcov.tar.gz
           echo "${KCOV_CHECKSUM}  /tmp/kcov.tar.gz" | sha256sum -c
-          sudo tar -xzf /tmp/kcov.tar.gz -C /
+          tar -xzf /tmp/kcov.tar.gz -C /tmp
+          sudo mv /tmp/kcov/bin/kcov /usr/local/bin
           mkdir -p coverage
           kcov --include-path=. --exclude-path=tests,coverage coverage bats "${bats_files[@]}"
           echo "Coverage report written to ./coverage"
