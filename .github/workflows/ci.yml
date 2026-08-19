@@ -124,8 +124,7 @@ jobs:
           url="https://github.com/SimonKagstrom/kcov/releases/download/v${KCOV_VERSION}/${tarball}"
           curl -fsSL --proto '=https' --proto-redir '=https' "${url}" -o /tmp/kcov.tar.gz
           echo "${KCOV_CHECKSUM}  /tmp/kcov.tar.gz" | sha256sum -c
-          tar -xzf /tmp/kcov.tar.gz -C /tmp
-          sudo cp /tmp/kcov/bin/kcov /usr/local/bin
+          sudo tar -xzf /tmp/kcov.tar.gz -C /
           mkdir -p coverage
           kcov --include-path=. --exclude-path=tests,coverage coverage bats "${bats_files[@]}"
           echo "Coverage report written to ./coverage"
