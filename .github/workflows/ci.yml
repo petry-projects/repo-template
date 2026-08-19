@@ -80,7 +80,10 @@ jobs:
         run: |
           tarball="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
           url="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/${tarball}"
-          wget -q "${url}" -O /tmp/gitleaks.tar.gz
+          # Constrain the transfer (and any redirect it follows) to HTTPS so a
+          # redirect can never downgrade to an insecure endpoint — SonarCloud
+          # flags an unrestricted download as a Security Hotspot otherwise.
+          curl -fsSL --proto '=https' --proto-redir '=https' "${url}" -o /tmp/gitleaks.tar.gz
           echo "${GITLEAKS_CHECKSUM}  /tmp/gitleaks.tar.gz" | sha256sum -c
           tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
           sudo mv /tmp/gitleaks /usr/local/bin
