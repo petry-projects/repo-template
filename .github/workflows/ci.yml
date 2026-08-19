@@ -39,6 +39,11 @@ jobs:
   build-and-test:
     name: build-and-test
     runs-on: ubuntu-latest
+    # Bound the job so a stalled network op (apt/checkout wedged on a bad mirror
+    # or DNS) fails fast instead of hanging for GitHub's 360-minute default — the
+    # p95=404s tail behind issue #169. Normal runs finish in ~20s; 10m is ample
+    # headroom while still catching a hang far below the default budget.
+    timeout-minutes: 10
     permissions:
       contents: read
     steps:
@@ -78,7 +83,7 @@ jobs:
           command -v bats >/dev/null || { echo "::error::bats install failed after 3 attempts" >&2; exit 1; }
 
       - name: Run compliance regression tests
-        run: bats tests/ci-secret-scan.bats tests/ci-runner-setup.bats tests/ci-apt-retry.bats tests/dev-lead-stub.bats tests/code-quality-ruleset.bats tests/pr-quality-ruleset.bats
+        run: bats tests/ci-secret-scan.bats tests/ci-runner-setup.bats tests/ci-apt-retry.bats tests/ci-job-timeout.bats tests/dev-lead-stub.bats tests/code-quality-ruleset.bats tests/pr-quality-ruleset.bats
 
 
   # Canonical secret-scan job — copied verbatim from push-protection.md#required-ci-job.
@@ -88,6 +93,9 @@ jobs:
   secret-scan:
     name: Secret scan (gitleaks)
     runs-on: ubuntu-latest
+    # Bound the job so a stalled gitleaks download / checkout fails fast instead
+    # of hanging for the 360-minute default (issue #169). See build-and-test.
+    timeout-minutes: 10
     permissions:
       contents: read
     steps:
@@ -137,6 +145,9 @@ jobs:
   coverage:
     name: coverage
     runs-on: ubuntu-latest
+    # Bound the job so a stalled apt/checkout fails fast instead of hanging for
+    # the 360-minute default (issue #169). See build-and-test.
+    timeout-minutes: 10
     permissions:
       contents: read
     steps:
