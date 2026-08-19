@@ -176,7 +176,10 @@ jobs:
           curl -fsSL --proto '=https' --proto-redir '=https' "${url}" -o /tmp/kcov.tar.gz
           echo "${KCOV_CHECKSUM}  /tmp/kcov.tar.gz" | sha256sum -c
           tar -xzf /tmp/kcov.tar.gz -C /tmp/
-          sudo mv /tmp/kcov-*/bin/kcov /usr/local/bin
+          for dir in /tmp/kcov-*; do
+            sudo mv "${dir}/bin/kcov" /usr/local/bin
+            break
+          done
           mkdir -p coverage
           kcov --include-path=. --exclude-path=tests,coverage coverage bats "${bats_files[@]}"
           echo "Coverage report written to ./coverage"
