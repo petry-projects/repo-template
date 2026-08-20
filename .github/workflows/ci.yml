@@ -114,22 +114,20 @@ jobs:
         run: |
           tarball="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
           url="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/${tarball}"
-          # Retry the download so a *transient* network failure (temporary DNS
-          # failure, a briefly-unavailable GitHub releases mirror) is retried
-          # instead of hard-failing this required check on the first attempt — the
-          # same single-shot-network surface hardened for apt in build-and-test /
-          # coverage (see ci-apt-retry.bats).
+          verified=false
           for attempt in 1 2 3; do
-            curl -fsSL --proto '=https' --proto-redir '=https' "${url}" -o /tmp/gitleaks.tar.gz && break
+            curl -fsSL --proto '=https' --proto-redir '=https' "${url}" -o /tmp/gitleaks.tar.gz \
+              && echo "${GITLEAKS_CHECKSUM}  /tmp/gitleaks.tar.gz" | sha256sum -c \
+              && { verified=true; break; }
             if [ "$attempt" -lt 3 ]; then
               echo "::warning::gitleaks download failed (attempt ${attempt}/3); retrying in 5s" >&2
               sleep 5
             fi
           done
-          # Fail loudly if every attempt was exhausted, rather than continuing to
-          # checksum a missing or partial tarball.
-          test -s /tmp/gitleaks.tar.gz || { echo "::error::gitleaks download failed after 3 attempts" >&2; exit 1; }
-          echo "${GITLEAKS_CHECKSUM}  /tmp/gitleaks.tar.gz" | sha256sum -c
+          [ "$verified" = true ] || { echo "::error::gitleaks download or checksum verification failed after 3 attempts" >&2; exit 1; }
+          # Post-loop existence gate: the retry loop only sets verified=true after a
+          # passing checksum, so a present tarball here is also a verified one.
+          test -s /tmp/gitleaks.tar.gz || { echo "::error::gitleaks tarball missing after verified download" >&2; exit 1; }
           tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
           sudo mv /tmp/gitleaks /usr/local/bin
 
@@ -164,17 +162,48 @@ jobs:
             echo "No bats tests found — coverage is green until tests exist."
             exit 0
           fi
-          # Retry the apt update+install so a transient apt/network failure is
-          # retried instead of hard-failing the run on the first attempt.
           for attempt in 1 2 3; do
             sudo apt-get update -qq \
-              && sudo apt-get install -y -qq bats python3-yaml \
+              && sudo apt-get install -y -qq bats python3-yaml build-essential cmake git pkg-config libcurl4-openssl-dev \
               && break
-            echo "::warning::apt install of bats failed (attempt ${attempt}/3); retrying in 5s" >&2
+            echo "::warning::apt install failed (attempt ${attempt}/3); retrying in 5s" >&2
             sleep 5
           done
           command -v bats >/dev/null || { echo "::error::bats install failed after 3 attempts" >&2; exit 1; }
-          bats "${bats_files[@]}"
+          # Install kcov from source (not available in Ubuntu 24.04 standard repos)
+          KCOV_VERSION="43"
+          if [ ! -f /usr/local/bin/kcov ]; then
+            original_dir="$(pwd)"
+            mkdir -p /tmp/kcov-build
+            cd /tmp
+            for attempt in 1 2 3; do
+              curl -fsSL --proto '=https' "https://github.com/SimonKagstrom/kcov/archive/v${KCOV_VERSION}.tar.gz" -o kcov.tar.gz && break
+              if [ "$attempt" -lt 3 ]; then
+                echo "::warning::kcov download failed (attempt ${attempt}/3); retrying in 5s" >&2
+                sleep 5
+              fi
+            done
+            test -s kcov.tar.gz || { echo "::warning::kcov download failed after 3 attempts; will run bats without coverage" >&2; }
+            if [ -s kcov.tar.gz ]; then
+              tar -xzf kcov.tar.gz -C /tmp/kcov-build --strip-components=1 \
+                && cd /tmp/kcov-build \
+                && mkdir -p build \
+                && cd build \
+                && cmake .. >/dev/null 2>&1 \
+                && make >/dev/null 2>&1 \
+                && sudo make install >/dev/null 2>&1 \
+                || echo "::warning::kcov build failed; will run bats without coverage" >&2
+            fi
+            cd "$original_dir"
+          fi
+          mkdir -p coverage
+          if command -v kcov >/dev/null; then
+            kcov --include-path=. --exclude-path=tests,coverage coverage bats "${bats_files[@]}"
+            echo "Coverage report written to ./coverage"
+          else
+            echo "::warning::kcov not available; running bats without coverage" >&2
+            bats "${bats_files[@]}"
+          fi
 
       # ── Per-stack expansion — replace/augment the shell block above for your stack.
       #    Keep the job id and `name:` as `coverage` so the required check is unchanged.
