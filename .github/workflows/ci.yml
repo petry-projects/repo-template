@@ -39,11 +39,18 @@ jobs:
   build-and-test:
     name: build-and-test
     runs-on: ubuntu-latest
+    # Bound the job so a stalled network op (apt/checkout wedged on a bad mirror
+    # or DNS) fails fast instead of hanging for GitHub's 360-minute default — the
+    # p95=404s tail behind issue #169. Normal runs finish in ~20s; 10m is ample
+    # headroom while still catching a hang far below the default budget.
+    timeout-minutes: 10
     permissions:
       contents: read
     steps:
       - name: Checkout repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       # ── Replace the step below with your stack's checks ───────────────────────
       # Standard CI stages: lint, format check, type check, unit tests, coverage
@@ -56,6 +63,29 @@ jobs:
       - name: Placeholder — replace with real build/test steps
         run: echo "CI stub — add your stack's lint/format/typecheck/test/coverage steps; see BOOTSTRAP.md."
 
+
+      - name: Install bats
+        # Refresh the package index first — installing against the runner image's
+        # stale cached index fails intermittently ("Unable to locate package") — then
+        # retry the whole update+install so a *transient* apt/network failure
+        # (temporary DNS failure, hash-sum mismatch, a briefly-unavailable mirror)
+        # is retried instead of hard-failing the run on the first attempt.
+        run: |
+          for attempt in 1 2 3; do
+            sudo apt-get update -qq \
+              && sudo apt-get install -y -qq bats python3-yaml \
+              && break
+            echo "::warning::apt install of bats failed (attempt ${attempt}/3); retrying in 5s" >&2
+            sleep 5
+          done
+          # Fail loudly if every attempt was exhausted, rather than silently
+          # continuing to the test step with bats missing.
+          command -v bats >/dev/null || { echo "::error::bats install failed after 3 attempts" >&2; exit 1; }
+
+      - name: Run compliance regression tests
+        run: bats tests/ci-secret-scan.bats tests/ci-runner-setup.bats tests/ci-apt-retry.bats tests/ci-job-timeout.bats tests/dev-lead-stub.bats tests/code-quality-ruleset.bats tests/pr-quality-ruleset.bats
+
+
   # Canonical secret-scan job — copied verbatim from push-protection.md#required-ci-job.
   # Produces the `Secret scan (gitleaks)` required check. Uses the gitleaks CLI (not
   # gitleaks/gitleaks-action, whose v2+ needs a paid org license); fully pinned +
@@ -63,11 +93,14 @@ jobs:
   secret-scan:
     name: Secret scan (gitleaks)
     runs-on: ubuntu-latest
+    # Bound the job so a stalled gitleaks download / checkout fails fast instead
+    # of hanging for the 360-minute default (issue #169). See build-and-test.
+    timeout-minutes: 10
     permissions:
       contents: read
     steps:
       - name: Checkout (full history)
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -92,6 +125,9 @@ jobs:
             fi
           done
           [ "$verified" = true ] || { echo "::error::gitleaks download or checksum verification failed after 3 attempts" >&2; exit 1; }
+          # Post-loop existence gate: the retry loop only sets verified=true after a
+          # passing checksum, so a present tarball here is also a verified one.
+          test -s /tmp/gitleaks.tar.gz || { echo "::error::gitleaks tarball missing after verified download" >&2; exit 1; }
           tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
           sudo mv /tmp/gitleaks /usr/local/bin
 
@@ -107,11 +143,16 @@ jobs:
   coverage:
     name: coverage
     runs-on: ubuntu-latest
+    # Bound the job so a stalled apt/checkout fails fast instead of hanging for
+    # the 360-minute default (issue #169). See build-and-test.
+    timeout-minutes: 10
     permissions:
       contents: read
     steps:
       - name: Checkout repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Coverage (shell/bats via kcov)
         run: |
