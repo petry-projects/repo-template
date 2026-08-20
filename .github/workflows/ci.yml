@@ -132,6 +132,7 @@ jobs:
           # Install kcov from source (not available in Ubuntu 24.04 standard repos)
           KCOV_VERSION="43"
           if [ ! -f /usr/local/bin/kcov ]; then
+            original_dir="$(pwd)"
             mkdir -p /tmp/kcov-build
             cd /tmp
             for attempt in 1 2 3; do
@@ -152,6 +153,7 @@ jobs:
                 && sudo make install >/dev/null 2>&1 \
                 || echo "::warning::kcov build failed; will run bats without coverage" >&2
             fi
+            cd "$original_dir"
           fi
           mkdir -p coverage
           if command -v kcov >/dev/null; then
