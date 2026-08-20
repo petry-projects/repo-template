@@ -70,6 +70,7 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Install gitleaks
         env:
@@ -80,14 +81,19 @@ jobs:
         run: |
           tarball="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
           url="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/${tarball}"
-          curl -fsSL --proto '=https' --proto-redir '=https' "${url}" -o /tmp/gitleaks.tar.gz
-          if echo "${GITLEAKS_CHECKSUM}  /tmp/gitleaks.tar.gz" | sha256sum -c; then
-            tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
-            sudo mv /tmp/gitleaks /usr/local/bin
-          else
-            echo "::error::gitleaks checksum verification failed" >&2
-            exit 1
-          fi
+          verified=false
+          for attempt in 1 2 3; do
+            curl -fsSL --proto '=https' --proto-redir '=https' "${url}" -o /tmp/gitleaks.tar.gz \
+              && echo "${GITLEAKS_CHECKSUM}  /tmp/gitleaks.tar.gz" | sha256sum -c \
+              && { verified=true; break; }
+            if [ "$attempt" -lt 3 ]; then
+              echo "::warning::gitleaks download failed (attempt ${attempt}/3); retrying in 5s" >&2
+              sleep 5
+            fi
+          done
+          [ "$verified" = true ] || { echo "::error::gitleaks download or checksum verification failed after 3 attempts" >&2; exit 1; }
+          tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
+          sudo mv /tmp/gitleaks /usr/local/bin
 
       - name: Run gitleaks
         # Requires a .gitleaks.toml at repo root (seeded by seed-repo-template.sh).
@@ -128,15 +134,24 @@ jobs:
           if [ ! -f /usr/local/bin/kcov ]; then
             mkdir -p /tmp/kcov-build
             cd /tmp
-            curl -fsSL --proto '=https' "https://github.com/SimonKagstrom/kcov/archive/v${KCOV_VERSION}.tar.gz" -o kcov.tar.gz \
-              && tar -xzf kcov.tar.gz -C /tmp/kcov-build --strip-components=1 \
-              && cd /tmp/kcov-build \
-              && mkdir -p build \
-              && cd build \
-              && cmake .. >/dev/null 2>&1 \
-              && make >/dev/null 2>&1 \
-              && sudo make install >/dev/null 2>&1 \
-              || echo "::warning::kcov build failed; will run bats without coverage" >&2
+            for attempt in 1 2 3; do
+              curl -fsSL --proto '=https' "https://github.com/SimonKagstrom/kcov/archive/v${KCOV_VERSION}.tar.gz" -o kcov.tar.gz && break
+              if [ "$attempt" -lt 3 ]; then
+                echo "::warning::kcov download failed (attempt ${attempt}/3); retrying in 5s" >&2
+                sleep 5
+              fi
+            done
+            test -s kcov.tar.gz || { echo "::warning::kcov download failed after 3 attempts; will run bats without coverage" >&2; }
+            if [ -s kcov.tar.gz ]; then
+              tar -xzf kcov.tar.gz -C /tmp/kcov-build --strip-components=1 \
+                && cd /tmp/kcov-build \
+                && mkdir -p build \
+                && cd build \
+                && cmake .. >/dev/null 2>&1 \
+                && make >/dev/null 2>&1 \
+                && sudo make install >/dev/null 2>&1 \
+                || echo "::warning::kcov build failed; will run bats without coverage" >&2
+            fi
           fi
           mkdir -p coverage
           if command -v kcov >/dev/null; then
