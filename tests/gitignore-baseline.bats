@@ -93,7 +93,9 @@ extract_l1_span() {
   # git evaluates the negation last and re-allows the file — encrypted variants are
   # safe to commit.
   run git -C "$BATS_TEST_DIRNAME/.." check-ignore --no-index "config.secret.enc.yaml"
-  [ "$status" -ne 0 ]
+  # check-ignore exits 1 when the path is not ignored; 128 signals an error, so
+  # require exactly 1 rather than any nonzero status.
+  [ "$status" -eq 1 ]
 }
 
 @test "public certificate files (.crt) are not ignored" {
