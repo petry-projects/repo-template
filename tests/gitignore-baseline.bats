@@ -89,7 +89,7 @@ extract_l1_span() {
 
 @test "SOPS/age-encrypted files (.enc.yaml) are re-allowed by the baseline" {
   # *.secret.* is ignored (section 11), but the baseline now re-allows SOPS/age
-  # encrypted variants (!*.enc.yaml, !*.enc.yml, !*.enc.json, !*.sops.*) because
+  # encrypted variants (!*.enc.yaml, !*.enc.yml, !*.enc.json, !*.sops.yaml, !*.sops.yml, !*.sops.json) because
   # they are safe to commit. The later negation wins, so config.secret.enc.yaml
   # is NOT ignored. check-ignore exits 1 when the path is not ignored.
   run git -C "$BATS_TEST_DIRNAME/.." check-ignore --no-index "config.secret.enc.yaml"
