@@ -11,7 +11,8 @@
 # trigger events, and top-level `permissions:` block are drift-protected and
 # MUST NOT be edited in the caller (see the file's own "AGENTS — READ BEFORE
 # EDITING" banner and ci-standards.md → Centralization tiers). In particular the
-# ref MUST be pinned to the `agent-shield/v2-stable` channel.
+# ref MUST be pinned to the major-scoped `agent-shield/v2-stable` channel: a bare
+# `agent-shield/stable` tier pin is drift (compliance check non-stub-agent-shield.yml).
 # This guard pins those invariants so drift is caught in CI rather than in
 # production run health.
 
@@ -27,9 +28,9 @@ STUB="${BATS_TEST_DIRNAME}/../.github/workflows/agent-shield.yml"
   local canon
   canon="$(mktemp)"
   # The committed stub has NO trailing newline, so emit the heredoc with its
-  # trailing newline added (printf '%s\n') to stay byte-faithful to the
+  # trailing newline stripped (printf '%s') to stay byte-faithful to the
   # committed, production stub that the fleet stub-drift monitor compares SHAs against.
-  printf '%s\n' "$(cat << 'CANONICAL'
+  printf '%s' "$(cat << 'CANONICAL'
 # ─────────────────────────────────────────────────────────────────────────────
 # SOURCE OF TRUTH: petry-projects/.github/standards/workflows/agent-shield.yml
 # Standard:        petry-projects/.github/standards/agent-standards.md
@@ -75,7 +76,7 @@ CANONICAL
 }
 
 @test "uses: ref is pinned to the agent-shield/v2-stable channel" {
-  grep -qE 'uses: petry-projects/\.github/\.github/workflows/agent-shield-reusable\.yml@agent-shield/v[0-9]+-stable' "$STUB"
+  grep -qF 'uses: petry-projects/.github/.github/workflows/agent-shield-reusable.yml@agent-shield/v2-stable' "$STUB"
 }
 
 @test "uses: ref is not repointed to @main, a SHA, or a frozen @vN" {
@@ -86,12 +87,12 @@ CANONICAL
   fi
 }
 
-@test "uses: ref is not pinned to a frozen or SHA ref" {
-  # The ref must be pinned to a stable channel (agent-shield/v2-stable), not a frozen version
-  # (@agent-shield/vN) or a SHA commit.
-  if grep -qE 'agent-shield-reusable\.yml@(main|[0-9a-f]{7,40}|v[0-9]+)' "$STUB"; then
-    echo "Error: The uses: ref in $STUB is pinned to a forbidden ref (main, SHA, or frozen vN)." >&2
-    echo "It must be pinned to the agent-shield/v2-stable channel." >&2
+@test "uses: ref is not pinned to the bare agent-shield/stable tier" {
+  # A bare `@agent-shield/stable` tier pin is drift — the ref must be scoped to a
+  # major channel `@agent-shield/v<M>-stable` (compliance check non-stub-agent-shield.yml).
+  if grep -qE 'agent-shield-reusable\.yml@agent-shield/stable' "$STUB"; then
+    echo "Error: The uses: ref in $STUB is pinned to the bare agent-shield/stable tier." >&2
+    echo "It must be pinned to the major-scoped agent-shield/v2-stable channel." >&2
     return 1
   fi
 }
