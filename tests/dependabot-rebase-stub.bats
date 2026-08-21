@@ -29,9 +29,9 @@ STUB="${BATS_TEST_DIRNAME}/../.github/workflows/dependabot-rebase.yml"
   canon="$(mktemp)"
   # The committed stub has NO trailing newline — unlike pr-review-mention.yml
   # which ships with one — so emit the heredoc with its trailing newline
-  # added (printf '%s\n') to stay byte-faithful to the committed, production stub
+  # stripped (printf '%s') to stay byte-faithful to the committed, production stub
   # that the fleet stub-drift monitor compares SHAs against.
-  printf '%s\n' "$(cat << 'CANONICAL'
+  printf '%s' "$(cat << 'CANONICAL'
 # ─────────────────────────────────────────────────────────────────────────────
 # SOURCE OF TRUTH: petry-projects/.github/standards/workflows/dependabot-rebase.yml
 # Standard:        petry-projects/.github/standards/dependabot-policy.md
@@ -100,7 +100,7 @@ CANONICAL
 }
 
 @test "uses: ref is pinned to the dependabot-rebase/v2-stable channel" {
-  grep -qE 'uses: petry-projects/\.github/\.github/workflows/dependabot-rebase-reusable\.yml@dependabot-rebase/v[0-9]+-stable' "$STUB"
+  grep -qF 'uses: petry-projects/.github/.github/workflows/dependabot-rebase-reusable.yml@dependabot-rebase/v2-stable' "$STUB"
 }
 
 @test "uses: ref is not repointed to @main, a SHA, or a frozen @vN" {
