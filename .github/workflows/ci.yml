@@ -45,13 +45,15 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
 
       - name: Install bats (with retry)
         run: |
           for attempt in 1 2 3; do
             sudo apt-get update -qq && \
             sudo apt-get install -y -qq bats && break
-            sleep 5
+            [ "$attempt" -lt 3 ] && sleep 5
           done
           command -v bats || { echo "bats install failed after 3 attempts"; exit 1; }
 
@@ -80,6 +82,7 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Install gitleaks
         env:
@@ -117,6 +120,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
 
       - name: Coverage (shell/bats)
         run: |
@@ -129,7 +134,7 @@ jobs:
           for attempt in 1 2 3; do
             sudo apt-get update -qq && \
             sudo apt-get install -y -qq bats && break
-            sleep 5
+            [ "$attempt" -lt 3 ] && sleep 5
           done
           command -v bats || { echo "bats install failed after 3 attempts"; exit 1; }
           bats "${bats_files[@]}"
