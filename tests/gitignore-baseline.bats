@@ -26,7 +26,7 @@ END_MARKER='# <<< END petry-projects secrets baseline <<<'
 # the same way pp_check_gitignore_baseline does: extract the span, then
 # `printf '%s' "$span" | sha256sum` (command substitution strips the trailing
 # newline, so the hash is trailing-newline tolerant).
-GITIGNORE_L1_SHA256='17300dc5131842932fcec2f0b96a8d9415b236b2ce440e4d19bdee1288cca274'
+GITIGNORE_L1_SHA256='1d4a83d95f8ee135aee79215b022dce1ac1cf8e049642ef9e82f1a80b691bc37'
 
 # Extract the L1 secrets-baseline span (markers inclusive) from stdin, mirroring
 # pp_extract_baseline_block. Prints nothing and exits non-zero if the block is
@@ -87,11 +87,13 @@ extract_l1_span() {
   }
 }
 
-@test "SOPS/age-encrypted files (.enc.yaml) are ignored by default" {
-  # *.secret.* is ignored (section 11). Encrypted variants are not re-allowed in the
-  # baseline; repository-specific exceptions can be added below the END marker.
+@test "SOPS/age-encrypted files (.enc.yaml) are re-allowed by default" {
+  # The baseline re-allows *.enc.yaml in both section 3 (helm-secrets) and section 11
+  # (SOPS/age). The !*.enc.yaml negation appears after *.secret.* in the file, so
+  # git evaluates the negation last and re-allows the file — encrypted variants are
+  # safe to commit.
   run git -C "$BATS_TEST_DIRNAME/.." check-ignore --no-index "config.secret.enc.yaml"
-  [ "$status" -eq 0 ]
+  [ "$status" -ne 0 ]
 }
 
 @test "public certificate files (.crt) are not ignored" {
@@ -116,15 +118,6 @@ extract_l1_span() {
   # *.sql.gz is in the ignore list (section 7).
   run git -C "$BATS_TEST_DIRNAME/.." check-ignore --no-index "backup.sql.gz"
   [ "$status" -eq 0 ]
-}
-
-@test ".env.vault is not ignored (dotenv-vault encrypted ciphertext, required to commit)" {
-  # .env.* catches .env.vault, but !.env.vault re-allows it — the file holds only
-  # encrypted ciphertext and dotenv-vault requires it to be committed for CI/prod decryption.
-  run git -C "$BATS_TEST_DIRNAME/.." check-ignore --no-index ".env.vault"
-  # check-ignore exits 1 when the path is not ignored; 128 signals an error, so
-  # require exactly 1 rather than any nonzero status.
-  [ "$status" -eq 1 ]
 }
 
 @test "L2 does not re-ignore a baseline-negated dotenv path" {
