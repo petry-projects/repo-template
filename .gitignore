@@ -95,7 +95,6 @@ values-secrets.yml
 # helm-secrets / sops-encrypted values are SAFE to commit — re-allow:
 !*.enc.yaml
 !*.enc.yml
-!*.enc.json
 !secrets.enc.yaml
 !secrets.enc.yml
 # Skaffold / Tilt local overrides
@@ -373,8 +372,6 @@ private.yml
 # Stripe CLI, Twilio CLI, SendGrid
 .stripe/
 .twilio-cli/
-# SendGrid, Twilio, Stripe
-.sendgrid/
 # Temporal, Dagger, Earthly auth
 .temporalio/
 .dagger/
@@ -401,7 +398,7 @@ actionlint.tar.gz
 # <<< END petry-projects secrets baseline <<<
 #
 # L2 — ecosystem/OS extension (per-repo, free to edit): append language,
-# framework, and OS entries BELOW this line from the matching language template at
+# framework, and OS entries BELOW this line from the matching template at
 # https://github.com/github/gitignore. Never edit inside the markers above,
 # and never re-ignore a path the L1 block negates. See
 # standards/gitignore-standard.md.
