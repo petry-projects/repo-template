@@ -14,16 +14,3 @@ updates:
     labels:
       - "security"
       - "dependencies"
-  # github-actions — version updates weekly. Unlike application ecosystems,
-  # actions use version updates (limit 10, not 0): pinned action SHAs do not
-  # affect application runtime, and the auto-merge workflow approves SHA-pinned
-  # bumps while CI catches breaking interface changes. See
-  # standards/dependabot-policy.md#github-actions-all-repos.
-  - package-ecosystem: "github-actions"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-    open-pull-requests-limit: 10
-    labels:
-      - "security"
-      - "dependencies"
