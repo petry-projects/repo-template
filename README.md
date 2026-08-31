@@ -10,3 +10,4 @@ one-time, per-stack setup (Dependabot + `ci.yml`).
 The workflow stubs and baseline files here are a distribution artifact of the org
 standards in [`petry-projects/.github`](https://github.com/petry-projects/.github)
 (`standards/`) and are regenerated from it — edit the standards, not this copy.
+
