@@ -52,6 +52,9 @@ jobs:
         if: env.SONAR_TOKEN != ''
         uses: SonarSource/sonarqube-scan-action@713881670b6b3676cda39549040e2d88c70d582e # v8.2.0
         continue-on-error: true
+      - name: Wait before SonarCloud retry
+        if: env.SONAR_TOKEN != '' && steps.sonar.outcome == 'failure'
+        run: sleep 30
       - name: SonarCloud Scan (retry)
         if: env.SONAR_TOKEN != '' && steps.sonar.outcome == 'failure'
         uses: SonarSource/sonarqube-scan-action@713881670b6b3676cda39549040e2d88c70d582e # v8.2.0
