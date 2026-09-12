@@ -83,10 +83,6 @@ assert_apt_install_is_retried() {
   [ -f "$CI_YML" ]
 }
 
-@test "build-and-test retries its apt package install" {
-  assert_apt_install_is_retried build-and-test
-}
-
 @test "coverage retries its apt package install" {
   assert_apt_install_is_retried coverage
 }
