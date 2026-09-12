@@ -39,7 +39,6 @@ jobs:
   build-and-test:
     name: build-and-test
     runs-on: ubuntu-latest
-    timeout-minutes: 10
     permissions:
       contents: read
     steps:
@@ -64,7 +63,6 @@ jobs:
   secret-scan:
     name: Secret scan (gitleaks)
     runs-on: ubuntu-latest
-    timeout-minutes: 10
     permissions:
       contents: read
     steps:
@@ -82,11 +80,7 @@ jobs:
         run: |
           tarball="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
           url="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/${tarball}"
-          for attempt in 1 2 3; do
-            curl -fsSL --proto '=https' --proto-redir '=https' "${url}" -o /tmp/gitleaks.tar.gz && break
-            [ "$attempt" -lt 3 ] && sleep 5
-          done
-          [ -s /tmp/gitleaks.tar.gz ] || { echo "gitleaks download failed after 3 attempts"; exit 1; }
+          wget -q "${url}" -O /tmp/gitleaks.tar.gz
           echo "${GITLEAKS_CHECKSUM}  /tmp/gitleaks.tar.gz" | sha256sum -c
           tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
           sudo mv /tmp/gitleaks /usr/local/bin
@@ -103,14 +97,11 @@ jobs:
   coverage:
     name: coverage
     runs-on: ubuntu-latest
-    timeout-minutes: 10
     permissions:
       contents: read
     steps:
       - name: Checkout repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          persist-credentials: false
 
       - name: Coverage (shell/bats via kcov)
         run: |
@@ -120,18 +111,11 @@ jobs:
             echo "No bats tests found — coverage is green until tests exist."
             exit 0
           fi
-          for attempt in 1 2 3; do
-            sudo apt-get update -qq && sudo apt-get install -y -qq bats && break
-            [ "$attempt" -lt 3 ] && sleep 5
-          done
-          command -v bats >/dev/null || { echo "bats install failed after 3 attempts"; exit 1; }
-          sudo apt-get install -y -qq cmake g++ pkg-config libcurl4-openssl-dev libelf-dev curl
-          kcov_version="42"
-          mkdir -p /tmp/kcov && cd /tmp/kcov
-          curl -fsSL "https://github.com/SimonKagstrom/kcov/archive/v${kcov_version}.tar.gz" -o kcov.tar.gz
-          tar -xzf kcov.tar.gz && cd "kcov-${kcov_version}" && mkdir build && cd build
-          cmake .. && make && sudo make install
-          bats "${bats_files[@]}"
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq bats kcov
+          mkdir -p coverage
+          kcov --include-path=. --exclude-path=tests,coverage coverage bats "${bats_files[@]}"
+          echo "Coverage report written to ./coverage"
 
       # ── Per-stack expansion — replace/augment the shell block above for your stack.
       #    Keep the job id and `name:` as `coverage` so the required check is unchanged.
