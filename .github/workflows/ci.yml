@@ -124,9 +124,8 @@ jobs:
             exit 0
           fi
           for attempt in 1 2 3; do
-            sudo apt-get update -qq &&
-            sudo apt-get install -y -qq bats curl binutils yq &&
-            break
+            sudo apt-get update -qq && \
+            sudo apt-get install -y -qq bats curl binutils yq && break
             [ "$attempt" -lt 3 ] && sleep 5
           done
           command -v bats >/dev/null || { echo "bats installation failed after 3 attempts"; exit 1; }
