@@ -51,8 +51,8 @@ jobs:
       - name: Install tools (with retry)
         run: |
           for attempt in 1 2 3; do
-            sudo timeout 120 apt-get update -qq && \
-            sudo timeout 180 apt-get install -y -qq bats shellcheck && break
+            sudo timeout 60 apt-get update -qq && \
+            sudo timeout 90 apt-get install -y -qq bats shellcheck && break
             [ "$attempt" -lt 3 ] && sleep 5
           done
           command -v bats || { echo "bats install failed after 3 attempts"; exit 1; }
@@ -105,7 +105,7 @@ jobs:
           tarball="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
           url="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/${tarball}"
           for attempt in 1 2 3; do
-            curl -fsSL --connect-timeout 30 --max-time 300 --proto '=https' --proto-redir '=https' "${url}" -o /tmp/gitleaks.tar.gz && break
+            curl -fsSL --connect-timeout 30 --max-time 150 --proto '=https' --proto-redir '=https' "${url}" -o /tmp/gitleaks.tar.gz && break
             [ "$attempt" -lt 3 ] && sleep 5
           done
           [ -s /tmp/gitleaks.tar.gz ] || { echo "gitleaks download failed after 3 attempts"; exit 1; }
@@ -143,8 +143,8 @@ jobs:
             exit 0
           fi
           for attempt in 1 2 3; do
-            sudo timeout 120 apt-get update -qq && \
-            sudo timeout 180 apt-get install -y -qq bats && break
+            sudo timeout 60 apt-get update -qq && \
+            sudo timeout 90 apt-get install -y -qq bats && break
             [ "$attempt" -lt 3 ] && sleep 5
           done
           command -v bats || { echo "bats install failed after 3 attempts"; exit 1; }

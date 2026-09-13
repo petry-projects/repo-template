@@ -24,13 +24,16 @@
 CI_YML="${BATS_TEST_DIRNAME}/../.github/workflows/ci.yml"
 
 # Print the body of a top-level job block — from `  <job>:` up to the next
-# top-level job key — so an assertion can be scoped to a single job.
+# top-level job key — so an assertion can be scoped to a single job. Comment lines
+# are dropped and `\`-continued lines are joined so a command split across several
+# lines for readability is matched as a single logical command (and a commented-out
+# command can never satisfy a guard).
 job_block() {
   awk -v job="$1" '
     $0 ~ "^  " job ":[[:space:]]*(#.*)?$" { f = 1; print; next }
     f && (/^  [A-Za-z][A-Za-z0-9_-]*:[[:space:]]*(#.*)?$/ || /^[A-Za-z]/) { f = 0 }
     f { print }
-  ' "$CI_YML"
+  ' "$CI_YML" | grep -v '^[[:space:]]*#' | awk '{ if (sub(/\\$/, "")) printf "%s ", $0; else print }'
 }
 
 # Assert that a job's apt commands are each bounded by a per-attempt `timeout`,
@@ -41,17 +44,20 @@ assert_apt_is_time_bounded() {
 
   local update_line install_line
   update_line="$(printf '%s\n' "$block" | grep -E 'apt(-get)?([[:space:]]+-[a-zA-Z0-9-]+)*[[:space:]]+update' | head -1)"
-  install_line="$(printf '%s\n' "$block" | grep -E 'apt(-get)?[[:space:]]+install' | head -1)"
+  install_line="$(printf '%s\n' "$block" | grep -E 'apt(-get)?([[:space:]]+-[a-zA-Z0-9-]+)*[[:space:]]+install' | head -1)"
 
   [ -n "$update_line" ] || { echo "$job: no apt update command found"; return 1; }
   [ -n "$install_line" ] || { echo "$job: no apt install command found"; return 1; }
 
-  # `timeout <seconds>` must govern each apt network command so a wedged mirror
-  # or DNS stall is bounded to a few seconds per attempt, not the whole job.
-  printf '%s\n' "$update_line" | grep -qE 'timeout[[:space:]]+[0-9]+' \
-    || { echo "$job: apt update is not bounded by a per-attempt 'timeout <seconds>'"; return 1; }
-  printf '%s\n' "$install_line" | grep -qE 'timeout[[:space:]]+[0-9]+' \
-    || { echo "$job: apt install is not bounded by a per-attempt 'timeout <seconds>'"; return 1; }
+  # `timeout <seconds>` must directly govern each apt network command — i.e. the
+  # `timeout <n>` token must immediately precede the apt invocation (an optional
+  # `sudo` between them is allowed). Requiring the binding, rather than a bare
+  # `timeout` anywhere on the line, closes the gap where unrelated text containing
+  # the word `timeout` could satisfy the guard while apt itself stays unbounded.
+  printf '%s\n' "$update_line" | grep -qE 'timeout[[:space:]]+[0-9]+[[:space:]]+(sudo[[:space:]]+)?apt(-get)?([[:space:]]+-[a-zA-Z0-9-]+)*[[:space:]]+update' \
+    || { echo "$job: apt update is not directly bounded by a per-attempt 'timeout <seconds>'"; return 1; }
+  printf '%s\n' "$install_line" | grep -qE 'timeout[[:space:]]+[0-9]+[[:space:]]+(sudo[[:space:]]+)?apt(-get)?([[:space:]]+-[a-zA-Z0-9-]+)*[[:space:]]+install' \
+    || { echo "$job: apt install is not directly bounded by a per-attempt 'timeout <seconds>'"; return 1; }
 }
 
 @test "ci.yml exists at the expected path" {
@@ -68,10 +74,16 @@ assert_apt_is_time_bounded() {
 
 @test "secret-scan bounds the gitleaks download with curl --max-time" {
   block="$(job_block secret-scan)"
-  curl_line="$(printf '%s\n' "$block" | grep -E '([[:space:]]|^)curl[[:space:]]' | head -1)"
-  [ -n "$curl_line" ] || { echo "secret-scan: no curl download command found"; return 1; }
-  # curl must cap the total transfer time so a half-open connection cannot hang
-  # the download until the job timeout; the retry loop then recovers on retry.
-  printf '%s\n' "$curl_line" | grep -qE -- '--max-time[[:space:]]+[0-9]+' \
-    || { echo "secret-scan: gitleaks curl is not bounded by --max-time <seconds>"; return 1; }
+  curl_lines="$(printf '%s\n' "$block" | grep -E '([[:space:]]|^)curl[[:space:]]')"
+  [ -n "$curl_lines" ] || { echo "secret-scan: no curl download command found"; return 1; }
+  # Every curl invocation must cap the total transfer time so a half-open
+  # connection cannot hang the download until the job timeout; the retry loop then
+  # recovers on retry. Checking every curl line — not just the first — closes the
+  # gap where a second, unbounded download (e.g. an added tool fetch) could slip in
+  # without failing this guard.
+  while IFS= read -r curl_line; do
+    [ -n "$curl_line" ] || continue
+    printf '%s\n' "$curl_line" | grep -qE -- '--max-time[[:space:]]+[0-9]+' \
+      || { echo "secret-scan: a gitleaks curl is not bounded by --max-time <seconds>: $curl_line"; return 1; }
+  done <<< "$curl_lines"
 }
