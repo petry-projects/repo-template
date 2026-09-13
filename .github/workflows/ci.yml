@@ -48,14 +48,25 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Install bats (with retry)
+      - name: Install tools (with retry)
         run: |
           for attempt in 1 2 3; do
             sudo apt-get update -qq && \
-            sudo apt-get install -y -qq bats && break
+            sudo apt-get install -y -qq bats shellcheck && break
             [ "$attempt" -lt 3 ] && sleep 5
           done
           command -v bats || { echo "bats install failed after 3 attempts"; exit 1; }
+          command -v shellcheck || { echo "shellcheck install failed after 3 attempts"; exit 1; }
+
+      - name: Lint shell scripts
+        run: |
+          shopt -s globstar nullglob
+          shell_files=(*.sh)
+          if [ ${#shell_files[@]} -eq 0 ]; then
+            echo "No shell scripts found — skipping lint."
+          else
+            shellcheck "${shell_files[@]}"
+          fi
 
       - name: Run bats tests
         run: |
