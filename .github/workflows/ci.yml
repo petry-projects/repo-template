@@ -139,6 +139,12 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          # This job checks out the PR ref and runs tests/**/*.bats on
+          # pull_request. Don't persist GITHUB_TOKEN in .git/config — a modified
+          # test could otherwise read it (artipacked / CWE-522). Coverage needs
+          # no authenticated git operations.
+          persist-credentials: false
 
       - name: Coverage (shell/bats)
         run: |
