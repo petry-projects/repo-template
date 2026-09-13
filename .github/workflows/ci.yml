@@ -162,6 +162,7 @@ jobs:
 
           # Install kcov (not available via apt on Ubuntu 24.04)
           KCOV_VERSION="42"
+          KCOV_CHECKSUM="78aa17a5f6d27a867cc0540b1550051591d350423a1a0ef98d63c9ce7cc10f9d"
           tarball="kcov-amd64.tar.gz"
           url="https://github.com/SimonKagstrom/kcov/releases/download/v${KCOV_VERSION}/${tarball}"
           for attempt in 1 2 3; do
@@ -169,6 +170,7 @@ jobs:
             [ "$attempt" -lt 3 ] && sleep 5
           done
           [ -s /tmp/kcov.tar.gz ] || { echo "kcov download failed after 3 attempts"; exit 1; }
+          echo "${KCOV_CHECKSUM}  /tmp/kcov.tar.gz" | sha256sum -c
           tar -xzf /tmp/kcov.tar.gz -C /tmp
           # kcov-amd64.tar.gz contains bin/kcov; find and move it
           if [ -f /tmp/kcov/bin/kcov ]; then
