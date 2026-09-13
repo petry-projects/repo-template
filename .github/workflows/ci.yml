@@ -161,7 +161,16 @@ jobs:
           done
           [ -s /tmp/kcov.tar.gz ] || { echo "kcov download failed after 3 attempts"; exit 1; }
           tar -xzf /tmp/kcov.tar.gz -C /tmp
-          sudo mv /tmp/usr/local/bin/kcov /usr/local/bin/
+          # kcov-amd64.tar.gz contains bin/kcov; find and move it
+          if [ -f /tmp/kcov/bin/kcov ]; then
+            sudo mv /tmp/kcov/bin/kcov /usr/local/bin/
+          elif [ -f /tmp/usr/local/bin/kcov ]; then
+            sudo mv /tmp/usr/local/bin/kcov /usr/local/bin/
+          else
+            echo "kcov binary not found after extraction"
+            ls -la /tmp/ | head -20
+            exit 1
+          fi
 
           mkdir -p coverage
           kcov --include-path=. --exclude-path=tests,coverage coverage bats "${bats_files[@]}"
