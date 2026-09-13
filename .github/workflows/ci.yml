@@ -130,10 +130,14 @@ jobs:
           done
           command -v bats >/dev/null || { echo "bats installation failed after 3 attempts"; exit 1; }
 
-          # kcov v42 expects libopcodes 2.38, but Ubuntu 24.04 has 2.42; create symlink for compatibility
-          if [ -f /usr/lib/x86_64-linux-gnu/libopcodes-2.42-system.so ] && [ ! -f /usr/lib/x86_64-linux-gnu/libopcodes-2.38-system.so ]; then
-            sudo ln -s /usr/lib/x86_64-linux-gnu/libopcodes-2.42-system.so /usr/lib/x86_64-linux-gnu/libopcodes-2.38-system.so
-          fi
+          # kcov v42 links against binutils 2.38 (libbfd/libopcodes), but Ubuntu 24.04
+          # ships 2.42; symlink each 2.42 lib to its expected 2.38 name for compatibility.
+          libdir=/usr/lib/x86_64-linux-gnu
+          for lib in libbfd libopcodes; do
+            if [ -f "${libdir}/${lib}-2.42-system.so" ] && [ ! -f "${libdir}/${lib}-2.38-system.so" ]; then
+              sudo ln -s "${libdir}/${lib}-2.42-system.so" "${libdir}/${lib}-2.38-system.so"
+            fi
+          done
 
           # Install kcov (not available via apt on Ubuntu 24.04)
           KCOV_VERSION="42"
