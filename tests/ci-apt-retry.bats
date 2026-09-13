@@ -32,9 +32,15 @@ first_line() {
 }
 
 # Assert that a single job block wraps its apt install in a bounded retry loop.
+# Skips the check if the job has no apt install commands (e.g., placeholder jobs).
 assert_apt_install_is_retried() {
   local job="$1" block
   block="$(job_block "$job")"
+
+  # If the job has no apt install commands, skip the retry check (e.g., placeholder jobs).
+  if ! printf '%s\n' "$block" | grep -qE 'apt(-get)?([[:space:]]+-[a-zA-Z0-9-]+)*[[:space:]]+install'; then
+    return 0
+  fi
 
   # Locate the retry-loop opener as a whole word so that one-liner loops
   # (e.g. `for i in {1..5}; do ... || sleep 5; done`) are also matched.
