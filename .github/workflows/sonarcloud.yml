@@ -52,13 +52,6 @@ jobs:
         if: env.SONAR_TOKEN != ''
         uses: SonarSource/sonarqube-scan-action@713881670b6b3676cda39549040e2d88c70d582e # v8.2.0
         continue-on-error: true
-      # Backoff before the retry (issue #137): an immediate retry lands in the same
-      # transient outage window and fails both attempts back-to-back. Wait 30s so
-      # the endpoint can recover. Gated on the first scan's failure so it only runs
-      # on the retry path.
-      - name: Backoff before retry
-        if: env.SONAR_TOKEN != '' && steps.sonar.outcome == 'failure'
-        run: sleep 30
       - name: SonarCloud Scan (retry)
         if: env.SONAR_TOKEN != '' && steps.sonar.outcome == 'failure'
         uses: SonarSource/sonarqube-scan-action@713881670b6b3676cda39549040e2d88c70d582e # v8.2.0
