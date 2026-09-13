@@ -1,3 +1,285 @@
+# >>> BEGIN petry-projects secrets baseline (managed by .github — do not edit) >>>
+# ============================================================================
+# petry-projects baseline .gitignore — SECRETS ONLY
+# ----------------------------------------------------------------------------
+# First layer of defense in the Push Protection Standard
+# (standards/push-protection.md). Complements GitHub secret scanning + push
+# protection, gitleaks pre-commit hooks, and the CI gitleaks job.
+#
+# Scope: SECRETS ONLY. This file is intentionally language-agnostic. Put
+# build artifacts, OS cruft, and editor swap files in per-repo .gitignores or
+# the matching language template from https://github.com/github/gitignore.
+#
+# Ordering note: keep `!` negations IMMEDIATELY AFTER the broad pattern they
+# carve out of. Git evaluates rules top-to-bottom; a later ignore can re-hide
+# a previously-negated file. A negation inside an already-ignored directory
+# does NOT re-include it — always negate by file, never by directory.
+# ============================================================================
+
+
+# ---------------------------------------------------------------------------
+# 1. Dotenv family
+# ---------------------------------------------------------------------------
+# .env files are the single most common source of leaked credentials on GitHub.
+.env
+.env.*
+!.env.example
+!.env.sample
+.envrc
+
+
+# ---------------------------------------------------------------------------
+# 2. SSH, PGP, HTTPS auth
+# ---------------------------------------------------------------------------
+# Prevent keyfiles (of any extension) from being committed at all.
+# macOS Keychain / git-credential-osxkeychain auth is in-memory only —
+# not at risk of leaking. Unix OSes rely on .git-credentials (below).
+.ssh/
+id_*
+!id_*.pub
+*.pem
+*.pfx
+*.key
+
+
+# ---------------------------------------------------------------------------
+# 3. Credentials embedded in shell profile / env setup scripts
+# ---------------------------------------------------------------------------
+# bash / zsh / ksh / sh config files that might hold shell var assignments
+# for API tokens, deploy keys, etc. The regex matches the typical case where
+# such a file sits at ~/.bashrc, ~/.zshrc, etc.; it does NOT match a repo's
+# own build scripts named build.sh (which are committed).
+.bashrc
+.bash_profile
+.bash_login
+.bashrc_login
+.bash_logout
+.zshrc
+.zshrc_login
+.zsh_login
+.zshenv
+.profile
+.kshrc
+.tcshrc
+.fishrc
+.profile_per_dir
+.shell/rc
+
+
+# ---------------------------------------------------------------------------
+# 4. Browsers / Electron and JavaScript toolchain caches that leak cookies
+# ---------------------------------------------------------------------------
+.session*
+.sessionStorage
+sessionStorage.json
+.electron_gyp/
+~/.electron-gyp/
+.node-gyp/
+
+
+# ---------------------------------------------------------------------------
+# 5. Dynamic library caches that often hold auth tokens
+# ---------------------------------------------------------------------------
+.npm
+.npm/
+.npm-debug.log
+npm-debug.log
+npm-debug.*.log
+.yarn/
+.yarn-cache/
+yarn-error.log
+.cache/pip/
+.cache/pipenv/
+.gem/
+gem_home/
+
+
+# ---------------------------------------------------------------------------
+# 6. Git and VCS
+# ---------------------------------------------------------------------------
+.git/
+.git-crypt/
+.github/secrets/
+
+
+# ---------------------------------------------------------------------------
+# 7. Package manager credentials & config holding secrets
+# ---------------------------------------------------------------------------
+# Recent supply-chain attacks specifically targeted these files.
+.npmrc
+.yarnrc
+.yarnrc.yml
+.pypirc
+.gem/credentials
+.gem/
+.cargo/credentials
+.cargo/credentials.toml
+.nuget/
+nuget.config
+NuGet.Config
+.m2/settings.xml
+.gradle/gradle.properties
+gradle-local.properties
+.netrc
+_netrc
+.curlrc
+.wgetrc
+# GH CLI / Git Credential Manager
+.gh-token
+gh_token
+.git-credentials
+.config/gh/hosts.yml
+# NOTE: .npmrc / .yarnrc.yml / nuget.config / gradle.properties also hold
+# legitimate non-secret config. The safer pattern is to commit a `.npmrc.example`
+# and keep the real file ignored. A per-repo override may re-allow a scrubbed
+# root file via `!/.npmrc` if absolutely needed.
+
+
+# ---------------------------------------------------------------------------
+# 8. Cloud CLI session / token caches
+# ---------------------------------------------------------------------------
+# These rarely end up in repos, but when they do they grant live access —
+# usually inside a Dockerfile COPY context that swept in a home dir.
+.aws/sso/cache/
+.aws/cli/cache/
+.config/gcloud/
+.config/gcloud/application_default_credentials.json
+.config/gcloud/legacy_credentials/
+.config/gcloud/access_tokens.db
+.boto
+.s3cfg
+.rclone.conf
+rclone.conf
+.oci/
+.ibmcloud/
+.snowflake/
+.snowsql/config
+.databricks/
+.databrickscfg
+
+
+# ---------------------------------------------------------------------------
+# 9. IDE files known to cache credentials
+# ---------------------------------------------------------------------------
+# JetBrains: workspace.xml can cache DB passwords; dataSources.local.xml
+# holds per-user DB state. dataSources.xml (no .local) is intended for
+# sharing and should not hold passwords — but review before committing.
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/usage.statistics.xml
+.idea/shelf/
+.idea/dataSources.local.xml
+.idea/dataSources/
+.idea/sqlDataSources.xml
+.idea/dynamic.xml
+.idea/**/aws.xml
+# VS Code: sftp.json from the popular SFTP extension embeds passwords.
+# Block local-variant settings; the shared settings.json stays committable.
+.vscode/sftp.json
+.vscode/ftp-sync.json
+.vscode/settings.local.json
+.vscode-server/
+# Eclipse secure storage
+.metadata/.plugins/org.eclipse.core.runtime/.settings/org.eclipse.equinox.security*
+# Cursor / Windsurf / Zed AI assistant caches (2025+)
+.cursor/mcp.json
+.cursor-server/
+.windsurf/
+.zed/settings.json
+# NOTE: do NOT blanket-ignore .idea/ or .vscode/ here — that's a per-repo
+# editor-cruft decision, not a secrets decision.
+
+
+# ---------------------------------------------------------------------------
+# 10. Generic "secret" / "credential" / "private" filename conventions
+# ---------------------------------------------------------------------------
+secrets.json
+secrets.toml
+secrets.env
+secret.yaml
+secret.yml
+secret.json
+credentials
+credentials.yaml
+credentials.yml
+credentials.json
+credentials.toml
+private.json
+private.yaml
+private.yml
+*.secret
+*.secret.*
+*.secrets
+*.private
+*.private.*
+# Re-allow obviously-public template variants
+!*.secret.example
+!*.secrets.example
+!secrets.example.*
+!credentials.example.*
+# Re-allow SOPS/age-encrypted variants (safe to commit)
+!*.enc.yaml
+!*.enc.yml
+!*.enc.json
+!*.sops.yaml
+!*.sops.yml
+!*.sops.json
+
+
+# ---------------------------------------------------------------------------
+# 11. Modern (2024-2026) credential-leak hotspots
+# ---------------------------------------------------------------------------
+# LLM / AI tooling config files where users paste API keys
+.anthropic/
+.openai/
+.ollama/id_ed25519
+.continue/config.json
+.aider.conf.yml
+.aider.model.settings.yml
+# GitHub Copilot local state
+.github-copilot/
+# Supabase / PlanetScale / Neon / Turso CLI auth
+.supabase/
+.pscale/
+.neon/
+.turso/
+# Railway / Render / Fly machine tokens
+.railway/
+.render/
+# Stripe CLI, Twilio CLI, SendGrid
+.stripe/
+.twilio-cli/
+# Temporal, Dagger, Earthly auth
+.temporalio/
+.dagger/
+.earthly/config.yml
+
+# ---------------------------------------------------------------------------
+# 12. Agent / local worktrees and CI-generated tool artifacts (org coding policy)
+# ---------------------------------------------------------------------------
+# Temporary worktrees created by Claude Code and other agents. Not strictly
+# secret material, but the petry-projects coding guidelines require these
+# paths to be ignored in every repo so an agent's scratch worktree cannot
+# be committed accidentally.
+.claude/worktrees/
+.worktrees/
+.dev-lead/
+# CI downloads actionlint into the repo root during linting; ignore the
+# generated binary so local lint runs cannot accidentally commit it.
+actionlint
+actionlint.tar.gz
+
+# ============================================================================
+# End of petry-projects secrets baseline
+# ============================================================================
+# <<< END petry-projects secrets baseline <<<
+#
+# L2 — ecosystem/OS extension (per-repo, free to edit): append language,
+# framework, and OS entries BELOW this line from the matching template at
+# https://github.com/github/gitignore. Never edit inside the markers above,
+# and never re-ignore a path the L1 block negates. See
+# standards/gitignore-standard.md.
+
 # OS / editor
 .DS_Store
 *.swp
@@ -10,7 +292,5 @@ dist/
 build/
 coverage/
 
-# Logs / env
+# Logs
 *.log
-.env
-.env.*
