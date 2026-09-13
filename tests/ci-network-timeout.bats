@@ -72,17 +72,20 @@ assert_apt_is_time_bounded() {
   assert_apt_is_time_bounded coverage
 }
 
-@test "secret-scan bounds the gitleaks download with curl --max-time" {
+@test "secret-scan bounds the gitleaks download with curl --connect-timeout and --max-time" {
   block="$(job_block secret-scan)"
   curl_lines="$(printf '%s\n' "$block" | grep -E '([[:space:]]|^)curl[[:space:]]')"
   [ -n "$curl_lines" ] || { echo "secret-scan: no curl download command found"; return 1; }
-  # Every curl invocation must cap the total transfer time so a half-open
-  # connection cannot hang the download until the job timeout; the retry loop then
-  # recovers on retry. Checking every curl line — not just the first — closes the
-  # gap where a second, unbounded download (e.g. an added tool fetch) could slip in
-  # without failing this guard.
+  # Every curl invocation must cap both the connection-establishment time
+  # (--connect-timeout) and the total transfer time (--max-time) so neither a hung
+  # DNS/TCP handshake nor a half-open connection mid-transfer can hang the download
+  # until the job timeout; the retry loop then recovers on retry. Checking every
+  # curl line — not just the first — closes the gap where a second, unbounded
+  # download (e.g. an added tool fetch) could slip in without failing this guard.
   while IFS= read -r curl_line; do
     [ -n "$curl_line" ] || continue
+    printf '%s\n' "$curl_line" | grep -qE -- '--connect-timeout[[:space:]]+[0-9]+' \
+      || { echo "secret-scan: a gitleaks curl is not bounded by --connect-timeout <seconds>: $curl_line"; return 1; }
     printf '%s\n' "$curl_line" | grep -qE -- '--max-time[[:space:]]+[0-9]+' \
       || { echo "secret-scan: a gitleaks curl is not bounded by --max-time <seconds>: $curl_line"; return 1; }
   done <<< "$curl_lines"
