@@ -123,7 +123,7 @@ jobs:
             exit 0
           fi
           sudo apt-get update -qq
-          sudo apt-get install -y -qq bats curl
+          sudo apt-get install -y -qq bats curl binutils
 
           # Install kcov (not available via apt on Ubuntu 24.04)
           KCOV_VERSION="42"
