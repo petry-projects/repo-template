@@ -149,7 +149,7 @@ jobs:
             sudo timeout 90 apt-get install -y -qq bats curl binutils yq && break
             [ "$attempt" -lt 3 ] && sleep 5
           done
-          command -v bats || { echo "bats install failed after 3 attempts"; exit 1; }
+          command -v bats >/dev/null || { echo "bats installation failed after 3 attempts"; exit 1; }
 
           # Install kcov (not available via apt on Ubuntu 24.04)
           KCOV_VERSION="42"
