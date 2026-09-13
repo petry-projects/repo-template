@@ -152,8 +152,8 @@ jobs:
           command -v bats || { echo "bats install failed after 3 attempts"; exit 1; }
 
           # Install kcov (not available via apt on Ubuntu 24.04)
-          KCOV_VERSION="43"
-          tarball="kcov-x86_64.tar.gz"
+          KCOV_VERSION="42"
+          tarball="kcov-amd64.tar.gz"
           url="https://github.com/SimonKagstrom/kcov/releases/download/v${KCOV_VERSION}/${tarball}"
           for attempt in 1 2 3; do
             curl -fsSL --proto '=https' --proto-redir '=https' "${url}" -o /tmp/kcov.tar.gz && break
@@ -161,7 +161,7 @@ jobs:
           done
           [ -s /tmp/kcov.tar.gz ] || { echo "kcov download failed after 3 attempts"; exit 1; }
           tar -xzf /tmp/kcov.tar.gz -C /tmp
-          sudo mv /tmp/kcov-x86_64/usr/local/bin/kcov /usr/local/bin/
+          sudo mv /tmp/usr/local/bin/kcov /usr/local/bin/
 
           mkdir -p coverage
           kcov --include-path=. --exclude-path=tests,coverage coverage bats "${bats_files[@]}"
