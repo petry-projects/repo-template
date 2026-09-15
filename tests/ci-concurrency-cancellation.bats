@@ -38,8 +38,12 @@ concurrency_block() {
 }
 
 # The value of the concurrency `group:` key (everything after `group:`), or empty.
+# An inline YAML comment (` # …`) is stripped so comment text can never satisfy a
+# guard — e.g. `group: ci-static # github.ref is required` must NOT pass the
+# github.ref check on the strength of the comment alone.
 group_value() {
-  concurrency_block | grep -E '^[[:space:]]+group:' | head -1 | sed -E 's/^[[:space:]]+group:[[:space:]]*//'
+  concurrency_block | grep -E '^[[:space:]]+group:' | head -1 \
+    | sed -E 's/^[[:space:]]+group:[[:space:]]*//; s/[[:space:]]+#.*$//; s/[[:space:]]+$//'
 }
 
 @test "ci.yml exists at the expected path" {
@@ -73,6 +77,8 @@ group_value() {
 }
 
 @test "cancel-in-progress is enabled so a new push supersedes the stale run" {
-  concurrency_block | grep -qE '^[[:space:]]+cancel-in-progress:[[:space:]]*true[[:space:]]*$' \
+  # Accept an optionally quoted `true` and tolerate a trailing inline comment so a
+  # valid config (`cancel-in-progress: "true" # …`) is not a false negative.
+  concurrency_block | grep -qE '^[[:space:]]+cancel-in-progress:[[:space:]]*(true|"true"|'\''true'\'')([[:space:]]*|[[:space:]]+#.*)$' \
     || { echo "concurrency must set cancel-in-progress: true"; return 1; }
 }
