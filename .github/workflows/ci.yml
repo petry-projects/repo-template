@@ -18,7 +18,9 @@
 # CONVENTIONS (enforced by the standard):
 #   • permissions: {} at top, least-privilege per job (CI needs contents: read)
 #   • triggers: push + pull_request to main
-#   • concurrency keyed by ref+sha so a new push cancels the stale run
+#   • concurrency keyed by ref (never the sha) so a new push to the same ref
+#     cancels the stale in-flight run — embedding github.sha would put every
+#     commit in its own group and defeat cancel-in-progress (issue #201)
 #   • SHA-pin every third-party action (never a tag/branch)
 # ─────────────────────────────────────────────────────────────────────────────
 name: CI
@@ -32,7 +34,7 @@ on:
 permissions: {}
 
 concurrency:
-  group: ci-${{ github.ref }}-${{ github.sha }}
+  group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
