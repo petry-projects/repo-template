@@ -29,7 +29,8 @@ CI_YML="${BATS_TEST_DIRNAME}/../.github/workflows/ci.yml"
 # commented-out backoff can never satisfy a guard.
 backoff_lines() {
   grep -vE '^[[:space:]]*#' "$CI_YML" \
-    | grep -E '\[[[:space:]]*"?\$attempt"?[[:space:]]+-lt[[:space:]]+3[[:space:]]*\].*([[:space:]]|;|&)sleep[[:space:]]'
+    | awk '{ if (sub(/\\$/, "")) printf "%s ", $0; else print }' \
+    | grep -E '\[[[:space:]]*"?\$attempt"?[[:space:]]+-lt[[:space:]]+3[[:space:]]*\].*([[:space:]]|;|&)sleep[[:space:]]' || true
 }
 
 @test "ci.yml exists at the expected path" {
@@ -42,13 +43,13 @@ backoff_lines() {
   # a removed one cannot make the per-loop assertions below pass vacuously.
   local count
   count="$(grep -vE '^[[:space:]]*#' "$CI_YML" \
-    | grep -cE 'for[[:space:]]+attempt[[:space:]]+in[[:space:]]+1[[:space:]]+2[[:space:]]+3')"
+    | grep -cE 'for[[:space:]]+attempt[[:space:]]+in[[:space:]]+1[[:space:]]+2[[:space:]]+3' || true)"
   [ "$count" -eq 3 ] || { echo "expected 3 attempt-bounded retry loops, found $count"; return 1; }
 }
 
 @test "every retry loop has a backoff sleep" {
   local count
-  count="$(backoff_lines | grep -c 'sleep')"
+  count="$(backoff_lines | grep -c 'sleep' || true)"
   [ "$count" -eq 3 ] || { echo "expected 3 attempt-guarded backoff sleeps, found $count"; return 1; }
 }
 
@@ -67,7 +68,9 @@ backoff_lines() {
   # outage (issue #204 root cause); reject it directly.
   while IFS= read -r line; do
     [ -n "$line" ] || continue
-    ! printf '%s\n' "$line" | grep -qE 'sleep[[:space:]]+[0-9]+([[:space:]]|;|$)' \
-      || { echo "retry backoff uses a fixed-constant sleep: $line"; return 1; }
+    if printf '%s\n' "$line" | grep -qE 'sleep[[:space:]]+[0-9]+([[:space:]]|;|$)'; then
+      echo "retry backoff uses a fixed-constant sleep: $line"
+      return 1
+    fi
   done < <(backoff_lines)
 }
