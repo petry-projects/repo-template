@@ -55,7 +55,10 @@ jobs:
           for attempt in 1 2 3; do
             sudo timeout 60 apt-get update -qq && \
             sudo timeout 90 apt-get install -y -qq bats shellcheck && break
-            [ "$attempt" -lt 3 ] && sleep 5
+            # Increasing backoff (15s, then 30s) so a transient apt/DNS/mirror blip
+            # or dpkg-lock contention that outlasts a fixed ~10s window is ridden
+            # out instead of exhausting all three attempts and fast-failing (#204).
+            [ "$attempt" -lt 3 ] && sleep $(( attempt * 15 ))
           done
           command -v bats || { echo "bats install failed after 3 attempts"; exit 1; }
           command -v shellcheck || { echo "shellcheck install failed after 3 attempts"; exit 1; }
@@ -108,7 +111,10 @@ jobs:
           url="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/${tarball}"
           for attempt in 1 2 3; do
             curl -fsSL --connect-timeout 30 --max-time 150 --proto '=https' --proto-redir '=https' "${url}" -o /tmp/gitleaks.tar.gz && break
-            [ "$attempt" -lt 3 ] && sleep 5
+            # Increasing backoff (15s, then 30s) so a transient releases-CDN/DNS blip
+            # that outlasts a fixed ~10s window is ridden out instead of exhausting
+            # all three attempts and fast-failing (#204).
+            [ "$attempt" -lt 3 ] && sleep $(( attempt * 15 ))
           done
           [ -s /tmp/gitleaks.tar.gz ] || { echo "gitleaks download failed after 3 attempts"; exit 1; }
           echo "${GITLEAKS_CHECKSUM}  /tmp/gitleaks.tar.gz" | sha256sum -c
@@ -147,7 +153,10 @@ jobs:
           for attempt in 1 2 3; do
             sudo timeout 60 apt-get update -qq && \
             sudo timeout 90 apt-get install -y -qq bats && break
-            [ "$attempt" -lt 3 ] && sleep 5
+            # Increasing backoff (15s, then 30s) so a transient apt/DNS/mirror blip
+            # or dpkg-lock contention that outlasts a fixed ~10s window is ridden
+            # out instead of exhausting all three attempts and fast-failing (#204).
+            [ "$attempt" -lt 3 ] && sleep $(( attempt * 15 ))
           done
           command -v bats || { echo "bats install failed after 3 attempts"; exit 1; }
           bats "${bats_files[@]}"
