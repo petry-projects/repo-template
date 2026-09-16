@@ -53,13 +53,31 @@ backoff_lines() {
   [ "$count" -eq 3 ] || { echo "expected 3 attempt-guarded backoff sleeps, found $count"; return 1; }
 }
 
-@test "every retry backoff scales with the attempt counter (increasing backoff)" {
-  # The sleep argument must reference the attempt counter so the wait grows across
-  # attempts, widening the retry window enough to outlast a short transient outage.
+@test "every retry backoff strictly increases with the attempt counter (increasing backoff)" {
+  # Merely mentioning $attempt is not enough: a decreasing expression like
+  # `sleep $(( 45 - attempt ))` or a constant one like `sleep $(( attempt * 0 ))`
+  # both contain "attempt" yet defeat the purpose. Extract the sleep argument and
+  # evaluate it for attempts 1, 2, 3, then require each delay to be a positive
+  # integer that grows strictly — the property that actually widens the retry
+  # window enough to outlast a short transient outage (#204).
   while IFS= read -r line; do
     [ -n "$line" ] || continue
-    printf '%s\n' "$line" | grep -qE 'sleep[[:space:]]+.*attempt' \
-      || { echo "retry backoff does not scale with \$attempt: $line"; return 1; }
+    local expr
+    expr="$(printf '%s\n' "$line" | sed -E 's/.*[^[:alnum:]_]sleep[[:space:]]+//')"
+    [ -n "$expr" ] || { echo "could not extract sleep argument: $line"; return 1; }
+    printf '%s\n' "$expr" | grep -q 'attempt' \
+      || { echo "retry backoff does not reference \$attempt: $line"; return 1; }
+    local prev=0 n delay
+    for n in 1 2 3; do
+      delay="$(attempt="$n"; eval "echo $expr")" \
+        || { echo "could not evaluate backoff argument '$expr': $line"; return 1; }
+      case "$delay" in
+        ''|*[!0-9]*) echo "backoff did not evaluate to a non-negative integer (got '$delay'): $line"; return 1;;
+      esac
+      [ "$delay" -gt "$prev" ] \
+        || { echo "backoff is not strictly increasing/positive (attempt $n -> ${delay}s, previous ${prev}s): $line"; return 1; }
+      prev="$delay"
+    done
   done < <(backoff_lines)
 }
 
