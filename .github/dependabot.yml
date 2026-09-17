@@ -14,3 +14,15 @@ updates:
     labels:
       - "security"
       - "dependencies"
+
+  # GitHub Actions — version updates (SHA-pinned; CI catches breaking interface
+  # changes and the auto-merge workflow approves the bumps). Required for every
+  # repo per standards/dependabot-policy.md#github-actions-all-repos.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    labels:
+      - "security"
+      - "dependencies"
