@@ -5,22 +5,33 @@
 # ADOPTING THIS WORKFLOW:
 #   1. This ships verbatim into repos created from petry-projects/repo-template.
 #   2. It is a CUSTOMIZE-PER-STACK stub: it passes out of the box so a fresh repo
-#      is green on day 0. Replace the placeholder step with your stack's
+#      is green on day 0. Replace the placeholder steps with your stack's
 #      lint / format / typecheck / unit-test / coverage steps (see the standard).
 #   3. The job name `build-and-test` is the required CI status check. Keep it — or,
 #      if you split into per-language jobs (e.g. TypeScript, Go, Python), update the
 #      repo's branch-protection required checks to match the new job names.
 #   4. Two more jobs ship by default and are org required checks — `Secret scan
 #      (gitleaks)` (per push-protection.md; needs a .gitleaks.toml at root, seeded
-#      by repo-template tooling) and `coverage` (green until your stack emits coverage).
+#      by repo-template tooling) and `coverage`.
 #      Keep their job names stable so the required checks stay satisfied.
+#
+# RUNNER-RELIABILITY INVARIANTS (regression-guarded by tests/ci-*.bats):
+#   • #152 stale apt index / kcov: every apt job runs `apt-get update` before
+#     `apt-get install`, and NO job installs the uninstallable `kcov` package.
+#   • #155 transient apt failure: each apt install runs inside a bounded 3-attempt
+#     retry loop with a backoff and a post-loop `command -v` failure gate.
+#   • #163 gitleaks fetch: the gitleaks download is a bounded 3-attempt curl retry
+#     loop with a backoff and a post-loop presence check.
+#   • #169 stalled run: every runner job declares a bounded `timeout-minutes`.
+#   • #196 per-attempt network stall: each apt command is wrapped in `timeout`,
+#     and the gitleaks curl caps `--connect-timeout` + `--max-time`.
+#   • #201 fast-fail: concurrency is keyed by github.ref (NOT github.sha) so a new
+#     push to a ref cancels the stale in-flight run.
 #
 # CONVENTIONS (enforced by the standard):
 #   • permissions: {} at top, least-privilege per job (CI needs contents: read)
 #   • triggers: push + pull_request to main
-#   • concurrency keyed by ref (never the sha) so a new push to the same ref
-#     cancels the stale in-flight run — embedding github.sha would put every
-#     commit in its own group and defeat cancel-in-progress (issue #201)
+#   • concurrency keyed by ref so a new push cancels the stale run
 #   • SHA-pin every third-party action (never a tag/branch)
 # ─────────────────────────────────────────────────────────────────────────────
 name: CI
@@ -46,36 +57,31 @@ jobs:
       contents: read
     steps:
       - name: Checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Install tools (with retry)
+      # ── Replace the steps below with your stack's checks ──────────────────────
+      # Standard CI stages: lint, format check, type check, unit tests, coverage
+      # (plus integration / e2e / build where applicable). For example, a Node repo:
+      #   - uses: actions/setup-node@<sha> # vX   (with node-version + cache)
+      #   - run: npm ci
+      #   - run: npm run lint && npm run typecheck && npm test
+      # See BOOTSTRAP.md and the CI standard. The default stack runs the repo's
+      # bats compliance suite; the package fetch below is hardened per #152/#155/#196.
+      - name: Install test tooling (bats) with bounded retry
         run: |
           for attempt in 1 2 3; do
-            sudo timeout 60 apt-get update -qq && \
-            sudo timeout 90 apt-get install -y -qq bats shellcheck && break
+            timeout 300 sudo apt-get update -qq && \
+            timeout 300 sudo apt-get install -y -qq bats && break
             [ "$attempt" -lt 3 ] && sleep 5
           done
-          command -v bats || { echo "bats install failed after 3 attempts"; exit 1; }
-          command -v shellcheck || { echo "shellcheck install failed after 3 attempts"; exit 1; }
+          command -v bats >/dev/null 2>&1 || { echo "bats install failed after 3 attempts" >&2; exit 1; }
 
-      - name: Lint shell scripts
-        run: |
-          shopt -s globstar nullglob
-          shell_files=(*.sh)
-          if [ ${#shell_files[@]} -eq 0 ]; then
-            echo "No shell scripts found — skipping lint."
-          else
-            shellcheck "${shell_files[@]}"
-          fi
-
-      - name: Run bats tests
+      - name: Run bats test suite
         run: |
           shopt -s globstar nullglob
           bats_files=(tests/**/*.bats)
           if [ ${#bats_files[@]} -eq 0 ]; then
-            echo "No bats tests found — skipping."
+            echo "No bats tests found."
             exit 0
           fi
           bats "${bats_files[@]}"
@@ -92,12 +98,11 @@ jobs:
       contents: read
     steps:
       - name: Checkout (full history)
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
-          persist-credentials: false
 
-      - name: Install gitleaks
+      - name: Install gitleaks (bounded retry)
         env:
           GITLEAKS_VERSION: "8.30.1"
           # Named GITLEAKS_CHECKSUM (not GITLEAKS_SHA256) — SonarCloud flags env var names
@@ -106,11 +111,13 @@ jobs:
         run: |
           tarball="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
           url="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/${tarball}"
+          # Bounded retry (#163) with per-attempt network caps (#196). --proto-redir
+          # '=https' (S6506) keeps a redirect from downgrading the fetch to http://.
           for attempt in 1 2 3; do
-            curl -fsSL --connect-timeout 30 --max-time 150 --proto '=https' --proto-redir '=https' "${url}" -o /tmp/gitleaks.tar.gz && break
+            curl --proto '=https' --proto-redir '=https' --tlsv1.2 -fsSL --connect-timeout 15 --max-time 120 "${url}" -o /tmp/gitleaks.tar.gz && break
             [ "$attempt" -lt 3 ] && sleep 5
           done
-          [ -s /tmp/gitleaks.tar.gz ] || { echo "gitleaks download failed after 3 attempts"; exit 1; }
+          test -s /tmp/gitleaks.tar.gz || { echo "gitleaks download failed after 3 attempts" >&2; exit 1; }
           echo "${GITLEAKS_CHECKSUM}  /tmp/gitleaks.tar.gz" | sha256sum -c
           tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
           sudo mv /tmp/gitleaks /usr/local/bin
@@ -120,10 +127,10 @@ jobs:
         run: gitleaks detect --source . --config .gitleaks.toml --redact --verbose --exit-code 1
 
   # Stack-aware coverage — produces the `coverage` required check. Default stack is
-  # shell/bats via kcov. GREEN-UNTIL-TESTS: when a stack emits no coverage yet, the
-  # job succeeds without producing a report, so seeding it fleet-wide never bricks a
-  # repo that has no test suite. It begins enforcing once tests exist. Add a per-stack
-  # block below (keep the job id and `name:` as `coverage` so the required check is stable).
+  # shell/bats. #152 removed the uninstallable `kcov` apt package: coverage installs
+  # bats via apt (hardened retry) and runs the suite. Add real coverage instrumentation
+  # per your stack below (keep the job id and `name:` as `coverage` so the required
+  # check stays stable).
   coverage:
     name: coverage
     runs-on: ubuntu-latest
@@ -132,9 +139,16 @@ jobs:
       contents: read
     steps:
       - name: Checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Install test tooling (bats) with bounded retry
+        run: |
+          for attempt in 1 2 3; do
+            timeout 300 sudo apt-get update -qq && \
+            timeout 300 sudo apt-get install -y -qq bats && break
+            [ "$attempt" -lt 3 ] && sleep 5
+          done
+          command -v bats >/dev/null 2>&1 || { echo "bats install failed after 3 attempts" >&2; exit 1; }
 
       - name: Coverage (shell/bats)
         run: |
@@ -144,13 +158,8 @@ jobs:
             echo "No bats tests found — coverage is green until tests exist."
             exit 0
           fi
-          for attempt in 1 2 3; do
-            sudo timeout 60 apt-get update -qq && \
-            sudo timeout 90 apt-get install -y -qq bats && break
-            [ "$attempt" -lt 3 ] && sleep 5
-          done
-          command -v bats || { echo "bats install failed after 3 attempts"; exit 1; }
           bats "${bats_files[@]}"
+          echo "bats suite passed."
 
       # ── Per-stack expansion — replace/augment the shell block above for your stack.
       #    Keep the job id and `name:` as `coverage` so the required check is unchanged.

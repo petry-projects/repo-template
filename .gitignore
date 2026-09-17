@@ -396,12 +396,12 @@ actionlint.tar.gz
 # End of petry-projects secrets baseline
 # ============================================================================
 # <<< END petry-projects secrets baseline <<<
-#
-# L2 — ecosystem/OS extension (per-repo, free to edit): append language,
-# framework, and OS entries BELOW this line from the matching template at
-# https://github.com/github/gitignore. Never edit inside the markers above,
-# and never re-ignore a path the L1 block negates. See
-# standards/gitignore-standard.md.
+
+# ---------------------------------------------------------------------------
+# Per-repo (L2) extension — build artifacts, OS cruft, editor files.
+# Secrets are covered by the managed baseline above; do not re-ignore dotenv
+# templates the baseline negates (no broad .env / .env.* here).
+# ---------------------------------------------------------------------------
 
 # OS / editor
 .DS_Store
