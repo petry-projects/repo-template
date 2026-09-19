@@ -32,7 +32,7 @@ on:
 permissions: {}
 
 concurrency:
-  group: ci-${{ github.ref }}-${{ github.sha }}
+  group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
