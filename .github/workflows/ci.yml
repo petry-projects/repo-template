@@ -65,6 +65,7 @@ jobs:
   secret-scan:
     name: Secret scan (gitleaks)
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
     steps:
@@ -82,10 +83,11 @@ jobs:
         run: |
           tarball="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
           url="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/${tarball}"
-          # --proto/--proto-redir '=https' restricts the initial fetch and any
-          # redirect (GitHub releases redirect to a CDN host) to HTTPS only, so a
-          # redirect can never downgrade to an insecure http:// URL.
-          curl -fsSL --proto '=https' --proto-redir '=https' "${url}" -o /tmp/gitleaks.tar.gz
+          for attempt in 1 2 3; do
+            curl -fsSL --connect-timeout 30 --max-time 150 --proto '=https' --proto-redir '=https' "${url}" -o /tmp/gitleaks.tar.gz && break
+            [ "$attempt" -lt 3 ] && sleep 5
+          done
+          [ -s /tmp/gitleaks.tar.gz ] || { echo "gitleaks download failed after 3 attempts"; exit 1; }
           echo "${GITLEAKS_CHECKSUM}  /tmp/gitleaks.tar.gz" | sha256sum -c
           tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
           sudo mv /tmp/gitleaks /usr/local/bin
@@ -102,6 +104,7 @@ jobs:
   coverage:
     name: coverage
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
     steps:
@@ -116,8 +119,12 @@ jobs:
             echo "No bats tests found — coverage is green until tests exist."
             exit 0
           fi
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq bats
+          for attempt in 1 2 3; do
+            sudo timeout 60 apt-get update -qq && \
+            sudo timeout 90 apt-get install -y -qq bats && break
+            [ "$attempt" -lt 3 ] && sleep 5
+          done
+          command -v bats || { echo "bats install failed after 3 attempts"; exit 1; }
           bats "${bats_files[@]}"
 
       # ── Per-stack expansion — replace/augment the shell block above for your stack.
