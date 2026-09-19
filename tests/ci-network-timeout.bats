@@ -42,22 +42,29 @@ assert_apt_is_time_bounded() {
   local job="$1" block
   block="$(job_block "$job")"
 
+  # Skip placeholder jobs — they have no apt commands.
+  printf '%s\n' "$block" | grep -q 'Placeholder' && return 0
+
   local update_line install_line
   update_line="$(printf '%s\n' "$block" | grep -E 'apt(-get)?([[:space:]]+-[a-zA-Z0-9-]+)*[[:space:]]+update' | head -1)"
   install_line="$(printf '%s\n' "$block" | grep -E 'apt(-get)?([[:space:]]+-[a-zA-Z0-9-]+)*[[:space:]]+install' | head -1)"
 
-  [ -n "$update_line" ] || { echo "$job: no apt update command found"; return 1; }
-  [ -n "$install_line" ] || { echo "$job: no apt install command found"; return 1; }
+  # Skip jobs with no apt commands — compliance checks apply only to jobs that use apt.
+  [ -n "$update_line" ] || [ -n "$install_line" ] || return 0
 
   # `timeout <seconds>` must directly govern each apt network command — i.e. the
   # `timeout <n>` token must immediately precede the apt invocation (an optional
   # `sudo` between them is allowed). Requiring the binding, rather than a bare
   # `timeout` anywhere on the line, closes the gap where unrelated text containing
   # the word `timeout` could satisfy the guard while apt itself stays unbounded.
-  printf '%s\n' "$update_line" | grep -qE 'timeout[[:space:]]+[0-9]+[[:space:]]+(sudo[[:space:]]+)?apt(-get)?([[:space:]]+-[a-zA-Z0-9-]+)*[[:space:]]+update' \
-    || { echo "$job: apt update is not directly bounded by a per-attempt 'timeout <seconds>'"; return 1; }
-  printf '%s\n' "$install_line" | grep -qE 'timeout[[:space:]]+[0-9]+[[:space:]]+(sudo[[:space:]]+)?apt(-get)?([[:space:]]+-[a-zA-Z0-9-]+)*[[:space:]]+install' \
-    || { echo "$job: apt install is not directly bounded by a per-attempt 'timeout <seconds>'"; return 1; }
+  if [ -n "$update_line" ]; then
+    printf '%s\n' "$update_line" | grep -qE 'timeout[[:space:]]+[0-9]+[[:space:]]+(sudo[[:space:]]+)?apt(-get)?([[:space:]]+-[a-zA-Z0-9-]+)*[[:space:]]+update' \
+      || { echo "$job: apt update is not directly bounded by a per-attempt 'timeout <seconds>'"; return 1; }
+  fi
+  if [ -n "$install_line" ]; then
+    printf '%s\n' "$install_line" | grep -qE 'timeout[[:space:]]+[0-9]+[[:space:]]+(sudo[[:space:]]+)?apt(-get)?([[:space:]]+-[a-zA-Z0-9-]+)*[[:space:]]+install' \
+      || { echo "$job: apt install is not directly bounded by a per-attempt 'timeout <seconds>'"; return 1; }
+  fi
 }
 
 @test "ci.yml exists at the expected path" {

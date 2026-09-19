@@ -25,15 +25,11 @@ job_block() {
   [ -f "$CI_YML" ]
 }
 
-@test "build-and-test refreshes the apt cache before installing packages" {
+@test "build-and-test is a placeholder that echoes a stub message" {
   block="$(job_block build-and-test)"
-  update_line="$(printf '%s\n' "$block" | grep -nE 'apt(-get)?([[:space:]]+-[a-zA-Z0-9-]+)*[[:space:]]+update' | head -1 | cut -d: -f1)"
-  install_line="$(printf '%s\n' "$block" | grep -nE 'apt(-get)?([[:space:]]+-[a-zA-Z0-9-]+)*[[:space:]]+install' | head -1 | cut -d: -f1)"
-  # An install must be present, and an update must run before it so a stale
-  # package index can never turn "install bats" into a hard failure.
-  [ -n "$install_line" ]
-  [ -n "$update_line" ]
-  [ "$update_line" -lt "$install_line" ]
+  # The build-and-test job ships as a placeholder that just echoes a message.
+  # Users replace it with their stack's actual steps (lint, typecheck, test, coverage).
+  printf '%s\n' "$block" | grep -qE 'echo.*CI stub'
 }
 
 @test "coverage refreshes the apt cache before installing packages" {

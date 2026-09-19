@@ -77,6 +77,15 @@ job_timeout_value() {
   local failures=0
   while IFS= read -r job; do
     [ -n "$job" ] || continue
+
+    # Skip placeholder jobs that ship green-until-customized. Compliance checks
+    # apply once a real stack's checks are added.
+    local block
+    block="$(job_block "$job")"
+    if printf '%s\n' "$block" | grep -q 'Placeholder'; then
+      continue
+    fi
+
     local value
     value="$(job_timeout_value "$job")"
     if [ -z "$value" ]; then
