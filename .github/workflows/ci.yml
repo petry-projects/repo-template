@@ -32,7 +32,7 @@ on:
 permissions: {}
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.ref }}-${{ github.sha }}
   cancel-in-progress: true
 
 jobs:
@@ -80,11 +80,7 @@ jobs:
         run: |
           tarball="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
           url="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/${tarball}"
-          for attempt in 1 2 3; do
-            curl -fsSL --connect-timeout 30 --max-time 150 --proto '=https' --proto-redir '=https' "${url}" -o /tmp/gitleaks.tar.gz && break
-            [ "$attempt" -lt 3 ] && sleep 5
-          done
-          [ -s /tmp/gitleaks.tar.gz ] || { echo "gitleaks download failed after 3 attempts"; exit 1; }
+          wget -q "${url}" -O /tmp/gitleaks.tar.gz
           echo "${GITLEAKS_CHECKSUM}  /tmp/gitleaks.tar.gz" | sha256sum -c
           tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
           sudo mv /tmp/gitleaks /usr/local/bin
@@ -101,16 +97,13 @@ jobs:
   coverage:
     name: coverage
     runs-on: ubuntu-latest
-    timeout-minutes: 10
     permissions:
       contents: read
     steps:
       - name: Checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Coverage (shell/bats)
+      - name: Coverage (shell/bats via kcov)
         run: |
           shopt -s globstar nullglob
           bats_files=(tests/**/*.bats)
@@ -118,13 +111,11 @@ jobs:
             echo "No bats tests found — coverage is green until tests exist."
             exit 0
           fi
-          for attempt in 1 2 3; do
-            sudo timeout 60 apt-get update -qq && \
-            sudo timeout 90 apt-get install -y -qq bats && break
-            [ "$attempt" -lt 3 ] && sleep 5
-          done
-          command -v bats || { echo "bats install failed after 3 attempts"; exit 1; }
-          bats "${bats_files[@]}"
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq bats kcov
+          mkdir -p coverage
+          kcov --include-path=. --exclude-path=tests,coverage coverage bats "${bats_files[@]}"
+          echo "Coverage report written to ./coverage"
 
       # ── Per-stack expansion — replace/augment the shell block above for your stack.
       #    Keep the job id and `name:` as `coverage` so the required check is unchanged.
