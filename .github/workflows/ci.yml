@@ -18,9 +18,9 @@
 # CONVENTIONS (enforced by the standard):
 #   • permissions: {} at top, least-privilege per job (CI needs contents: read)
 #   • triggers: push + pull_request to main
-#   • concurrency keyed by ref+sha so a new push cancels the stale run (issue #208):
+#   • concurrency keyed by ref+sha to give each commit its own slot (issue #208):
 #     a per-ref-only group races the synchronize event and can leave HEAD with no
-#     CI results; scoping to github.sha gives every commit its own slot
+#     CI results; scoping to github.sha ensures CI always runs to completion on HEAD
 #   • SHA-pin every third-party action (never a tag/branch)
 # ─────────────────────────────────────────────────────────────────────────────
 name: CI
