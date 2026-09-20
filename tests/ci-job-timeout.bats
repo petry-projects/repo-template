@@ -83,7 +83,7 @@ job_timeout_value() {
     # once a real stack's checks are added.
     local block
     block="$(job_block "$job")"
-    if printf '%s\n' "$block" | grep -qE 'run:[[:space:]]*echo[[:space:]]+"CI stub'; then
+    if printf '%s\n' "$block" | grep -qF 'echo "CI stub — add your stack'"'"'s lint/format/typecheck/test/coverage steps; see BOOTSTRAP.md."'; then
       continue
     fi
 
