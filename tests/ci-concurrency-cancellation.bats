@@ -1,28 +1,32 @@
 #!/usr/bin/env bats
-# Compliance regression guard for ci.yml concurrency-cancellation reliability (issue #201).
+# Compliance regression guard for ci.yml concurrency scoping (issue #208).
 #
-# The CI workflow failed at ~59% across the monitored window (p50 28s, p95 178s) —
-# a fast-failure signature, not the stall signature the earlier remediations
-# targeted (#152 stale apt index, #155 apt retry, #163 gitleaks retry, #169 per-job
-# timeout, #196 per-attempt network timeout). The driver was the concurrency key:
+# The org CI standard now mandates SHA-scoped concurrency. Source of truth:
+# petry-projects/.github standards/ci-standards.md §1 ("Why SHA-scoped
+# concurrency?") and standards/workflows/ci.yml, which require:
 #
 #   concurrency:
-#     group: ci-${{ github.ref }}-${{ github.sha }}   # <- github.sha
+#     group: ci-${{ github.ref }}-${{ github.sha }}
 #     cancel-in-progress: true
 #
-# Because the group embeds ${{ github.sha }}, every commit lands in a *distinct*
-# concurrency group, so `cancel-in-progress: true` can never match — and therefore
-# never supersede — an in-flight run for the same ref. When an automation branch
-# receives a burst of pushes seconds apart (observed: 4 pushes ~26s apart on one
-# branch), each spawns a full run that runs to completion. Every superseded run that
-# should have been *cancelled* instead runs and *fails*, inflating the failure rate
-# the Fleet Monitor flags. Every sibling workflow in this repo (auto-rebase,
-# dependabot-rebase, feature-ideation, add-to-project, initiative-driver) keys its
-# group by a *stable* identity (ref / repo / event) precisely so cancellation works.
+# A per-ref-only group (`ci-${{ github.ref }}`) with `cancel-in-progress: true`
+# creates a race: when the final push arrives while the previous cancellation is
+# still in flight, GitHub may not fire a new `pull_request: synchronize` event,
+# leaving the HEAD commit with no CI results and blocking the PR indefinitely
+# (issue #208). Scoping the group to `github.sha` gives every commit its own
+# concurrency slot so CI always runs to completion on HEAD.
 #
-# This guard pins the fix: ci.yml's concurrency group must be keyed by github.ref
-# and must NOT contain github.sha, and cancel-in-progress must stay true, so a new
-# push to a ref cancels the stale in-flight run instead of letting both complete.
+# `cancel-in-progress: true` is retained: with SHA-scoped groups no two pushes
+# share a slot, so it is effectively a no-op, but it is kept to declare intent —
+# if the group formula is ever changed back to a per-ref pattern, the intended
+# cancellation behaviour takes effect immediately without a separate edit.
+#
+# NOTE (policy history): an earlier remediation (#201) keyed the group by ref
+# *only* and forbade github.sha. The org standard has since reversed that
+# decision to fix the #208 race; this guard now pins the current standard.
+#
+# This guard pins the fix: ci.yml's concurrency group must be keyed by both
+# github.ref and github.sha, and cancel-in-progress must stay true.
 
 CI_YML="${BATS_TEST_DIRNAME}/../.github/workflows/ci.yml"
 
@@ -67,13 +71,18 @@ group_value() {
     || { echo "concurrency group must be keyed by github.ref so pushes to a ref share a group: $group"; return 1; }
 }
 
-@test "concurrency group does not embed github.sha (would defeat cancel-in-progress)" {
+@test "concurrency group embeds github.sha (gives every commit its own slot)" {
   local group
   group="$(group_value)"
-  # A sha in the group gives every commit a unique group, so cancel-in-progress can
-  # never supersede a stale run for the same ref (issue #201 root cause).
-  ! printf '%s\n' "$group" | grep -qE 'github\.sha' \
-    || { echo "concurrency group must NOT contain github.sha: $group"; return 1; }
+  # A sha in the group gives every commit a unique slot so a burst of pushes never
+  # leaves HEAD with no CI results via a dropped synchronize event (issue #208).
+  # Require the full `${{ github.sha }}` expression, not just the literal text
+  # `github.sha`, so a group that omits the expression wrapper (e.g.
+  # `ci-github.ref-github.sha`) cannot pass while failing to interpolate at runtime.
+  # Literal `[{][{]`/`[}][}]` character classes with basic grep avoid GNU grep 3.8+
+  # stray-backslash warnings, and `[[:space:]]` keeps the pattern POSIX-portable.
+  printf '%s\n' "$group" | grep -q '[$][{][{][[:space:]]*github\.sha[[:space:]]*[}][}]' \
+    || { echo "concurrency group must contain the github.sha expression (e.g. \${{ github.sha }}): $group"; return 1; }
 }
 
 @test "cancel-in-progress is enabled so a new push supersedes the stale run" {
