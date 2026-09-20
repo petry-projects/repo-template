@@ -39,7 +39,7 @@ assert_apt_install_is_retried() {
   # Skip the inert placeholder job that only echoes a stub message. Placeholder
   # stubs ship green-until-customized; compliance checks apply once a real stack's
   # checks are added.
-  printf '%s\n' "$block" | grep -qE 'echo.*CI stub' && return 0
+  printf '%s\n' "$block" | grep -qE 'run:[[:space:]]*echo[[:space:]]+"CI stub' && return 0
 
   # Locate the retry-loop opener as a whole word so that one-liner loops
   # (e.g. `for i in {1..5}; do ... || sleep 5; done`) are also matched.

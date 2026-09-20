@@ -83,7 +83,7 @@ job_timeout_value() {
     # once a real stack's checks are added.
     local block
     block="$(job_block "$job")"
-    if printf '%s\n' "$block" | grep -qE 'echo.*CI stub'; then
+    if printf '%s\n' "$block" | grep -qE 'run:[[:space:]]*echo[[:space:]]+"CI stub'; then
       continue
     fi
 
