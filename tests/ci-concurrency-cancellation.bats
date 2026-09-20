@@ -76,8 +76,13 @@ group_value() {
   group="$(group_value)"
   # A sha in the group gives every commit a unique slot so a burst of pushes never
   # leaves HEAD with no CI results via a dropped synchronize event (issue #208).
-  printf '%s\n' "$group" | grep -qE 'github\.sha' \
-    || { echo "concurrency group must contain github.sha (ci-\${{ github.ref }}-\${{ github.sha }}): $group"; return 1; }
+  # Require the full `${{ github.sha }}` expression, not just the literal text
+  # `github.sha`, so a group that omits the expression wrapper (e.g.
+  # `ci-github.ref-github.sha`) cannot pass while failing to interpolate at runtime.
+  # Literal `[{][{]`/`[}][}]` character classes with basic grep avoid GNU grep 3.8+
+  # stray-backslash warnings, and `[[:space:]]` keeps the pattern POSIX-portable.
+  printf '%s\n' "$group" | grep -q '[$][{][{][[:space:]]*github\.sha[[:space:]]*[}][}]' \
+    || { echo "concurrency group must contain the github.sha expression (e.g. \${{ github.sha }}): $group"; return 1; }
 }
 
 @test "cancel-in-progress is enabled so a new push supersedes the stale run" {
