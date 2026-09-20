@@ -78,11 +78,12 @@ job_timeout_value() {
   while IFS= read -r job; do
     [ -n "$job" ] || continue
 
-    # Skip placeholder jobs that ship green-until-customized. Compliance checks
-    # apply once a real stack's checks are added.
+    # Skip the inert placeholder job that only echoes a stub message.
+    # Placeholder stubs ship green-until-customized; compliance checks apply
+    # once a real stack's checks are added.
     local block
     block="$(job_block "$job")"
-    if printf '%s\n' "$block" | grep -q 'Placeholder'; then
+    if printf '%s\n' "$block" | grep -qE 'echo.*CI stub'; then
       continue
     fi
 

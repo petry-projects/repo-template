@@ -42,8 +42,9 @@ assert_apt_is_time_bounded() {
   local job="$1" block
   block="$(job_block "$job")"
 
-  # Skip placeholder jobs — they have no apt commands.
-  printf '%s\n' "$block" | grep -q 'Placeholder' && return 0
+  # Skip the inert placeholder job that only echoes a stub message — it has no
+  # apt commands.
+  printf '%s\n' "$block" | grep -qE 'echo.*CI stub' && return 0
 
   local update_line install_line
   update_line="$(printf '%s\n' "$block" | grep -E 'apt(-get)?([[:space:]]+-[a-zA-Z0-9-]+)*[[:space:]]+update' | head -1)"
