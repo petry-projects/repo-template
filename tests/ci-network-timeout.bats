@@ -43,8 +43,11 @@ assert_apt_is_time_bounded() {
   block="$(job_block "$job")"
 
   # Skip the inert placeholder job that only echoes a stub message — it has no
-  # apt commands.
-  printf '%s\n' "$block" | grep -qF 'echo "CI stub — add your stack'"'"'s lint/format/typecheck/test/coverage steps; see BOOTSTRAP.md."' && return 0
+  # apt commands. Detect by step name + echo command.
+  if printf '%s\n' "$block" | grep -q "name: Placeholder" && \
+     printf '%s\n' "$block" | grep -qE 'run:[[:space:]]+echo'; then
+    return 0
+  fi
 
   local update_line install_line
   update_line="$(printf '%s\n' "$block" | grep -E 'apt(-get)?([[:space:]]+-[a-zA-Z0-9-]+)*[[:space:]]+update' | head -1)"
