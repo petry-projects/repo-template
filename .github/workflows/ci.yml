@@ -44,6 +44,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
 
       # ── Replace the step below with your stack's checks ───────────────────────
       # Standard CI stages: lint, format check, type check, unit tests, coverage
@@ -70,6 +72,7 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Install gitleaks
         env:
@@ -106,6 +109,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
 
       - name: Coverage (shell/bats via kcov)
         run: |
@@ -115,8 +120,13 @@ jobs:
             echo "No bats tests found — coverage is green until tests exist."
             exit 0
           fi
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq bats kcov
+          for attempt in 1 2 3; do
+            sudo timeout 60 apt-get update -qq && \
+            sudo timeout 90 apt-get install -y -qq bats kcov && break
+            [ "$attempt" -lt 3 ] && sleep 5
+          done
+          command -v bats || { echo "bats install failed after 3 attempts"; exit 1; }
+          command -v kcov || { echo "kcov install failed after 3 attempts"; exit 1; }
           mkdir -p coverage
           kcov --include-path=. --exclude-path=tests,coverage coverage bats "${bats_files[@]}"
           echo "Coverage report written to ./coverage"
