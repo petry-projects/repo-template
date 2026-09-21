@@ -148,142 +148,175 @@ secring.*
 
 
 # ---------------------------------------------------------------------------
-# 5. SSH agents and local tools
+# 5. Terraform / IaC state and variables
 # ---------------------------------------------------------------------------
-# SSH agent sockets (dynamically created, platform-specific)
-ssh-*
-# gpg-agent socket and lock files
-.gnupg/S.*
-.gnupg/D.*
-# Python / Golang credential helpers (usually Git credential cache)
-.cache/git-credential-oauth
-.git-credential-cache
-.git-credential-oauth
+# State files contain plaintext secrets resolved at apply-time
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+crash.log
+crash.*.log
+# .tfvars routinely hold secrets — block all, allow only examples
+*.tfvars
+*.tfvars.json
+!*.tfvars.example
+!*.tfvars.sample
+!example.tfvars
+# Local .terraform cache
+.terraform/
+.terraform.lock.hcl.bak
+# Pulumi stack configs (often hold encrypted + plaintext values)
+Pulumi.*.yaml
+!Pulumi.yaml
+# Ansible vault password files
+vault-password
+vault_password
+.vault_pass
+.vault-password-file
 
 
 # ---------------------------------------------------------------------------
-# 6. Cloud SDKs and local dev tools (implicit auth)
+# 6. Secret manager local caches & key material
 # ---------------------------------------------------------------------------
-# gcloud / Cloud SDK stores application-default-credentials and other keys
+# SOPS / age — private keys are plaintext files
+.sops/
+sops.agekey
+age.key
+age-key.txt
+keys.txt
+# HashiCorp Vault token files
+.vault-token
+.vault_token
+vault-token
+# Doppler CLI config (contains service tokens)
+.doppler.yaml
+.doppler/
+doppler.yaml
+# 1Password CLI session tokens / service-account tokens
+.op/
+op-session-*
+.1password/
+# Infisical, Bitwarden CLI, chamber, envchain, teller
+.infisical.json
+.bw-session
+.chamber
+.teller.yml
+
+
+# ---------------------------------------------------------------------------
+# 7. Database dumps and DB client dotfiles
+# ---------------------------------------------------------------------------
+# Raw dumps frequently contain PII + embedded credentials in CREATE USER stmts
+*.sql.gz
+*.sql.bz2
+*.sql.xz
+*.sql.zst
+*.dump
+*.bak
+dump.rdb
+mongodump/
+# Client config dotfiles that store passwords in plaintext
+.pgpass
+.my.cnf
+.mylogin.cnf
+.mongorc.js
+.mongoshrc.js
+.psqlrc.local
+.pg_service.conf
+
+
+# ---------------------------------------------------------------------------
+# 8. Package registry / tooling credential dotfiles
+# ---------------------------------------------------------------------------
+# Recent supply-chain attacks specifically targeted these files.
+.npmrc
+.yarnrc
+.yarnrc.yml
+.pypirc
+.gem/credentials
+.gem/
+.cargo/credentials
+.cargo/credentials.toml
+.nuget/
+nuget.config
+NuGet.Config
+.m2/settings.xml
+.gradle/gradle.properties
+gradle-local.properties
+.netrc
+_netrc
+.curlrc
+.wgetrc
+# GH CLI / Git Credential Manager
+.gh-token
+gh_token
+.git-credentials
+.config/gh/hosts.yml
+# NOTE: .npmrc / .yarnrc.yml / nuget.config / gradle.properties also hold
+# legitimate non-secret config. The safer pattern is to commit a `.npmrc.example`
+# and keep the real file ignored. A per-repo override may re-allow a scrubbed
+# root file via `!/.npmrc` if absolutely needed.
+
+
+# ---------------------------------------------------------------------------
+# 9. Cloud CLI session / token caches
+# ---------------------------------------------------------------------------
+# These rarely end up in repos, but when they do they grant live access —
+# usually inside a Dockerfile COPY context that swept in a home dir.
+.aws/sso/cache/
+.aws/cli/cache/
 .config/gcloud/
 .config/gcloud/application_default_credentials.json
-# direnv — source-only, but can eval secret-containing .envrc files
-.envrc
-# Volta (Node version manager) — rarely a secret source, but included for
-# consistency with other language managers
-.volta
-# rbenv (Ruby) — same
-.rbenv-version
-# pyenv (Python) — same
-.python-version
-# nvm (Node) — same
-.nvmrc
+.config/gcloud/legacy_credentials/
+.config/gcloud/access_tokens.db
+.boto
+.s3cfg
+.rclone.conf
+rclone.conf
+.oci/
+.ibmcloud/
+.snowflake/
+.snowsql/config
+.databricks/
+.databrickscfg
 
 
 # ---------------------------------------------------------------------------
-# 7. IDE / editor plugins: OAuth tokens, API keys, session state
+# 10. IDE files known to cache credentials
 # ---------------------------------------------------------------------------
-# VS Code
-.vscode/*
-!.vscode/extensions.json
-!.vscode/launch.json
-!.vscode/settings.json
-!.vscode/tasks.json
-# IntelliJ IDEA, PyCharm, WebStorm
-.idea/*
-!.idea/codeStyles
-!.idea/inspectionProfiles
-# Sublime Text
-sublime-session.json
-package-settings.json
-# NeoVim
-.nvim-local.lua
-.nvim/
-# Emacs
-.emacs.d/
-.emacs.local
-# LocalStack / testcontainers CLI auth
-.localstack/
-.testcontainers.properties
-# Language servers and debug adapters can store auth
-.local/share/nvim/mason/
-.vim/bundle/
-# NixOS / Nix local store and shell cache
-.nix/
-.direnv/
+# JetBrains: workspace.xml can cache DB passwords; dataSources.local.xml
+# holds per-user DB state. dataSources.xml (no .local) is intended for
+# sharing and should not hold passwords — but review before committing.
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/usage.statistics.xml
+.idea/shelf/
+.idea/dataSources.local.xml
+.idea/dataSources/
+.idea/sqlDataSources.xml
+.idea/dynamic.xml
+.idea/**/aws.xml
+# VS Code: sftp.json from the popular SFTP extension embeds passwords.
+# Block local-variant settings; the shared settings.json stays committable.
+.vscode/sftp.json
+.vscode/ftp-sync.json
+.vscode/settings.local.json
+.vscode-server/
+# Eclipse secure storage
+.metadata/.plugins/org.eclipse.core.runtime/.settings/org.eclipse.equinox.security*
+# Cursor / Windsurf / Zed AI assistant caches (2025+)
+.cursor/mcp.json
+.cursor-server/
+.windsurf/
+.zed/settings.json
+# NOTE: do NOT blanket-ignore .idea/ or .vscode/ here — that's a per-repo
+# editor-cruft decision, not a secrets decision.
 
 
 # ---------------------------------------------------------------------------
-# 8. Secrets in version control / .git directory
+# 11. Generic "secret" / "credential" / "private" filename conventions
 # ---------------------------------------------------------------------------
-# Git hooks (can contain secrets or execute arbitrary code during push)
-.git/hooks/
-# Reflog can contain command-line history with secrets
-.git/logs/
-# Git config can be user-specific / contain credentials
-.git/config.local
-.git/config.worktree
-# GIT_SSH_COMMAND and GIT_ASKPASS can leak via environment, so be extra cautious
-.gitconfig.local
-# SSH key for GitHub (not really in .git, but grouped with git auth)
-.ssh/github_*
-.ssh/github*
-# Sparse-checkout patterns (can reveal internal structure)
-.git/info/sparse-checkout
-
-
-# ---------------------------------------------------------------------------
-# 9. Runtime: secrets in memory, temp files, and sockets
-# ---------------------------------------------------------------------------
-# Python
-.pytest_cache/
-__pycache__/
-*.pyc
-.python-cache/
-.pip-log
-# Node / npm
-.npm/
-.npm-cache/
-.pnpm-store/
-# Docker runtime sockets (some contain credentials)
-docker.sock
-# systemd user unit directory (can contain secrets)
-.config/systemd/user/
-# Gradle / Maven build cache (can contain sensitive deps / plugins)
-.gradle/
-.m2/
-
-
-# ---------------------------------------------------------------------------
-# 10. Backup and editor artifacts (secondary risk — includes duplicates of secrets)
-# ---------------------------------------------------------------------------
-*.swp
-*~
-*.tmp
-*.bak
-*.backup
-*.orig
-# Vim / Emacs
-.DS_Store
-.vimrc.local
-# Sublime
-*.sublime-workspace
-# IntelliJ
-*.iml
-*.iws
-# MS Office tmp files
-~$*
-
-
-# ---------------------------------------------------------------------------
-# 11. Common credential / secrets file patterns in the wild
-# ---------------------------------------------------------------------------
-# Generic secret filenames (name-based; catches accidental commits)
-secret
-secrets
 secrets.json
-secrets.yaml
-secrets.yml
 secrets.toml
 secrets.env
 secret.yaml
