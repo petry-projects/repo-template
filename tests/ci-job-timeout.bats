@@ -78,13 +78,13 @@ job_timeout_value() {
   while IFS= read -r job; do
     [ -n "$job" ] || continue
 
-    # Skip the inert placeholder job that only echoes a stub message.
+    # Skip jobs with no runner setup needed (such as placeholder stubs).
     # Placeholder stubs ship green-until-customized; compliance checks apply
-    # once a real stack's checks are added. Detect by step name + echo command.
+    # once a real stack's checks are added. Detect by checking if the job has
+    # no apt or significant work commands.
     local block
     block="$(job_block "$job")"
-    if printf '%s\n' "$block" | grep -q "name: Placeholder" && \
-       printf '%s\n' "$block" | grep -qE 'run:[[:space:]]+echo'; then
+    if ! printf '%s\n' "$block" | grep -qE 'apt(-get)?([[:space:]]+-[a-zA-Z0-9-]+)*[[:space:]]+(update|install)'; then
       continue
     fi
 
