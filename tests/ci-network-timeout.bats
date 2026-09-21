@@ -42,10 +42,10 @@ assert_apt_is_time_bounded() {
   local job="$1" block
   block="$(job_block "$job")"
 
-  # Skip jobs with no apt commands (such as placeholder stubs). Placeholder stubs
-  # have no apt commands and don't require time bounds. Detect by checking if the
-  # job has no apt update/install commands.
-  if ! printf '%s\n' "$block" | grep -qE 'apt(-get)?([[:space:]]+-[a-zA-Z0-9-]+)*[[:space:]]+(update|install)'; then
+  # Skip the inert placeholder job that only echoes a stub message — it has no
+  # apt commands. Detect by step name + echo command.
+  if printf '%s\n' "$block" | grep -q "name: Placeholder" && \
+     printf '%s\n' "$block" | grep -qE 'run:[[:space:]]+echo'; then
     return 0
   fi
 

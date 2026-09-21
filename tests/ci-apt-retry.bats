@@ -36,10 +36,12 @@ assert_apt_install_is_retried() {
   local job="$1" block
   block="$(job_block "$job")"
 
-  # Skip jobs with no apt commands (such as placeholder stubs). Placeholder stubs
-  # ship green-until-customized; compliance checks apply once a real stack's checks
-  # are added. Detect by checking if the job has no apt update/install commands.
-  if ! printf '%s\n' "$block" | grep -qE 'apt(-get)?([[:space:]]+-[a-zA-Z0-9-]+)*[[:space:]]+(update|install)'; then
+  # Skip the inert placeholder job that only echoes a stub message. Placeholder
+  # stubs ship green-until-customized; compliance checks apply once a real stack's
+  # checks are added. Detect by checking for a step with "Placeholder" in the name
+  # and a run step with echo.
+  if printf '%s\n' "$block" | grep -q "name: Placeholder" && \
+     printf '%s\n' "$block" | grep -qE 'run:[[:space:]]+echo'; then
     return 0
   fi
 
