@@ -38,10 +38,8 @@ assert_apt_install_is_retried() {
 
   # Skip the inert placeholder job that only echoes a stub message. Placeholder
   # stubs ship green-until-customized; compliance checks apply once a real stack's
-  # checks are added. Detect by checking for a step with "Placeholder" in the name
-  # and a run step with echo.
-  if printf '%s\n' "$block" | grep -q "name: Placeholder" && \
-     printf '%s\n' "$block" | grep -qE 'run:[[:space:]]+echo'; then
+  # checks are added. Detect by the exact stub command (independent of step name).
+  if printf '%s\n' "$block" | grep -qE 'echo.*CI stub.*BOOTSTRAP'; then
     return 0
   fi
 
