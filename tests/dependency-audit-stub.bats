@@ -48,7 +48,11 @@ STUB="${BATS_TEST_DIRNAME}/../.github/workflows/dependency-audit.yml"
 #     lives in the reusable workflow above.
 #   • You MAY change: nothing in this file in normal use. Adopt verbatim.
 #   • You MUST NOT change: trigger events, the `uses:` line, or job name
-#     (used as a required status check).
+#     (used as a required status check). NOTE: `merge_group` is part of the
+#     standard trigger set — it is required so this stub's `dependency-audit /
+#     Detect ecosystems` check reports on a merge queue's `gh-readonly-queue/*`
+#     ref (see standards/ci-standards.md). Do not drop it on sync and do not
+#     flag it as drift.
 #   • If you need different behaviour (new ecosystem, tool version bump),
 #     open a PR against the reusable in the central repo.
 # ─────────────────────────────────────────────────────────────────────────────
@@ -64,6 +68,7 @@ on:
     branches: [main]
   push:
     branches: [main]
+  merge_group:
 
 permissions:
   contents: read
