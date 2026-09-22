@@ -43,8 +43,9 @@ assert_apt_is_time_bounded() {
   block="$(job_block "$job")"
 
   # Skip the inert placeholder job that only echoes a stub message — it has no
-  # apt commands. Detect by the exact stub command (independent of step name).
-  if printf '%s\n' "$block" | grep -qE 'echo.*CI stub.*BOOTSTRAP'; then
+  # apt commands. Detect by the exact placeholder structure.
+  if printf '%s\n' "$block" | grep -q "name: Placeholder" && \
+     printf '%s\n' "$block" | grep -qE 'run:[[:space:]]+echo'; then
     return 0
   fi
 

@@ -80,10 +80,11 @@ job_timeout_value() {
 
     # Skip the inert placeholder job that only echoes a stub message.
     # Placeholder stubs ship green-until-customized; compliance checks apply
-    # once a real stack's checks are added. Detect by the exact stub command.
+    # once a real stack's checks are added. Detect by the exact placeholder structure.
     local block
     block="$(job_block "$job")"
-    if printf '%s\n' "$block" | grep -qE 'echo.*CI stub.*BOOTSTRAP'; then
+    if printf '%s\n' "$block" | grep -q "name: Placeholder" && \
+       printf '%s\n' "$block" | grep -qE 'run:[[:space:]]+echo'; then
       continue
     fi
 
