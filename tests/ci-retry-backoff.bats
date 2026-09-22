@@ -33,6 +33,32 @@ backoff_lines() {
     | grep -E '\[[[:space:]]*"?\$attempt"?[[:space:]]+-lt[[:space:]]+3[[:space:]]*\].*([[:space:]]|;|&)sleep[[:space:]]' || true
 }
 
+# Attempt-guarded backoff lines confined to a SINGLE retry loop, selected by its
+# 1-based ordinal (1st, 2nd, 3rd `for attempt in 1 2 3` block). Unlike
+# backoff_lines (which aggregates across the whole file), this scopes the grep to
+# the requested loop's `for … do … done` body, so a loop that lost its sleep
+# cannot be masked by another loop that gained a second one. Comment lines are
+# dropped and line-continuations joined exactly as in backoff_lines.
+loop_backoff_lines() {
+  local requested="$1"
+  grep -vE '^[[:space:]]*#' "$CI_YML" \
+    | awk -v requested="$requested" '
+        /for[[:space:]]+attempt[[:space:]]+in[[:space:]]+1[[:space:]]+2[[:space:]]+3/ {
+          loop++
+          in_requested = (loop == requested)
+        }
+        {
+          if (in_requested) {
+            line = $0
+            if (sub(/\\$/, "", line)) printf "%s ", line
+            else print line
+          }
+        }
+        in_requested && /^[[:space:]]*done[[:space:]]*$/ { in_requested = 0 }
+      ' \
+    | grep -E '\[[[:space:]]*"?\$attempt"?[[:space:]]+-lt[[:space:]]+3[[:space:]]*\].*([[:space:]]|;|&)sleep[[:space:]]' || true
+}
+
 @test "ci.yml exists at the expected path" {
   [ -f "$CI_YML" ]
 }
@@ -48,9 +74,18 @@ backoff_lines() {
 }
 
 @test "every retry loop has a backoff sleep" {
-  local count
-  count="$(backoff_lines | grep -c 'sleep' || true)"
-  [ "$count" -eq 3 ] || { echo "expected 3 attempt-guarded backoff sleeps, found $count"; return 1; }
+  # Validate each retry loop independently: an aggregate count of 3 across the
+  # whole file could be satisfied even if one loop lost its guarded sleep while
+  # another gained a second one. Scope the assertion to each `for attempt in
+  # 1 2 3` block so every loop must carry exactly one attempt-guarded sleep.
+  local loop count
+  for loop in 1 2 3; do
+    count="$(loop_backoff_lines "$loop" | grep -c 'sleep' || true)"
+    [ "$count" -eq 1 ] || {
+      echo "expected 1 attempt-guarded backoff sleep in retry loop $loop, found $count"
+      return 1
+    }
+  done
 }
 
 @test "every retry backoff strictly increases with the attempt counter (increasing backoff)" {
