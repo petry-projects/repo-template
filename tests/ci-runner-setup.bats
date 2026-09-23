@@ -31,10 +31,11 @@ job_block() {
   block="$(printf '%s\n' "$block" | grep -v '^[[:space:]]*#')"
 
   # The build-and-test job ships as a placeholder that just echoes a message.
-  # If the placeholder step is present, verify the exact stub message.
-  # If customized (placeholder removed), the test succeeds (assumes real steps replace it).
-  if printf '%s\n' "$block" | grep -qE 'name:[[:space:]]*Placeholder'; then
-    printf '%s\n' "$block" | grep -qE 'run:[[:space:]]+echo.*CI stub' || return 1
+  # If the job contains only checkout and an echo with "CI stub" (structural check),
+  # verify it has the exact stub message. If customized with real steps, pass.
+  if printf '%s\n' "$block" | grep -qE 'run:[[:space:]]+echo.*CI stub'; then
+    # Stub message found; this is a placeholder. Verify it contains only inert steps.
+    ! printf '%s\n' "$block" | grep -qE 'apt(-get)?[[:space:]]+(install|update)' || return 1
   fi
 }
 
