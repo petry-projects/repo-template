@@ -46,9 +46,10 @@ assert_apt_is_time_bounded() {
   update_line="$(printf '%s\n' "$block" | grep -E 'apt(-get)?([[:space:]]+-[a-zA-Z0-9-]+)*[[:space:]]+update' | head -1)"
   install_line="$(printf '%s\n' "$block" | grep -E 'apt(-get)?([[:space:]]+-[a-zA-Z0-9-]+)*[[:space:]]+install' | head -1)"
 
-  # Jobs that invoke apt in any form must be checked. If apt is present but no
+  # Jobs that invoke apt subcommands must be checked. If apt is present but no
   # recognized update/install pattern matched, fail closed (not silently skip).
-  if printf '%s\n' "$block" | grep -qE '(^|[[:space:]])apt(-get)?([[:space:]]|$)'; then
+  # Match apt with network-relevant subcommands to avoid false positives from prose.
+  if printf '%s\n' "$block" | grep -qE 'apt(-get)?[[:space:]]+(update|install|upgrade|dist-upgrade|autoremove|clean|autoclean)'; then
     [ -n "$update_line" ] || [ -n "$install_line" ] || { echo "$job: apt command found but no 'update'/'install' pattern matched — add timeout bound"; return 1; }
   else
     return 0

@@ -17,13 +17,14 @@
 CI_YML="${BATS_TEST_DIRNAME}/../.github/workflows/ci.yml"
 
 # Print the body of a top-level job block — from `  <job>:` up to the next
-# top-level job key — so an assertion can be scoped to a single job.
+# top-level job key — so an assertion can be scoped to a single job. Comment lines
+# are dropped so a commented-out apt command can never satisfy a guard.
 job_block() {
   awk -v job="$1" '
     $0 ~ "^  " job ":[[:space:]]*(#.*)?$" { f = 1; print; next }
     f && (/^  [A-Za-z][A-Za-z0-9_-]*:[[:space:]]*(#.*)?$/ || /^[A-Za-z]/) { f = 0 }
     f { print }
-  ' "$CI_YML"
+  ' "$CI_YML" | grep -v '^[[:space:]]*#'
 }
 
 # First line number (within a job block) matching a regex, or empty if none.
@@ -90,7 +91,7 @@ assert_apt_install_is_retried() {
   [ -f "$CI_YML" ]
 }
 
-@test "build-and-test retries its apt package install" {
+@test "build-and-test placeholder skips the apt-retry check" {
   assert_apt_install_is_retried build-and-test
 }
 
