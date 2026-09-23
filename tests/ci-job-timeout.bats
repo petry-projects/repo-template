@@ -78,16 +78,6 @@ job_timeout_value() {
   while IFS= read -r job; do
     [ -n "$job" ] || continue
 
-    # Skip the inert placeholder job that only echoes a stub message.
-    # Placeholder stubs ship green-until-customized; compliance checks apply
-    # once a real stack's checks are added. Detect by the exact placeholder structure.
-    local block
-    block="$(job_block "$job")"
-    if printf '%s\n' "$block" | grep -q "name: Placeholder" && \
-       printf '%s\n' "$block" | grep -qE 'run:[[:space:]]+echo'; then
-      continue
-    fi
-
     local value
     value="$(job_timeout_value "$job")"
     if [ -z "$value" ]; then

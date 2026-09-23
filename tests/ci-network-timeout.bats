@@ -42,19 +42,17 @@ assert_apt_is_time_bounded() {
   local job="$1" block
   block="$(job_block "$job")"
 
-  # Skip the inert placeholder job that only echoes a stub message — it has no
-  # apt commands. Detect by the exact placeholder structure.
-  if printf '%s\n' "$block" | grep -q "name: Placeholder" && \
-     printf '%s\n' "$block" | grep -qE 'run:[[:space:]]+echo'; then
-    return 0
-  fi
-
   local update_line install_line
   update_line="$(printf '%s\n' "$block" | grep -E 'apt(-get)?([[:space:]]+-[a-zA-Z0-9-]+)*[[:space:]]+update' | head -1)"
   install_line="$(printf '%s\n' "$block" | grep -E 'apt(-get)?([[:space:]]+-[a-zA-Z0-9-]+)*[[:space:]]+install' | head -1)"
 
-  # Skip jobs with no apt commands — compliance checks apply only to jobs that use apt.
-  [ -n "$update_line" ] || [ -n "$install_line" ] || return 0
+  # Jobs that invoke apt in any form must be checked. If apt is present but no
+  # recognized update/install pattern matched, fail closed (not silently skip).
+  if printf '%s\n' "$block" | grep -qE '(^|[[:space:]])apt(-get)?([[:space:]]|$)'; then
+    [ -n "$update_line" ] || [ -n "$install_line" ] || { echo "$job: apt command found but no 'update'/'install' pattern matched — add timeout bound"; return 1; }
+  else
+    return 0
+  fi
 
   # `timeout <seconds>` must directly govern each apt network command — i.e. the
   # `timeout <n>` token must immediately precede the apt invocation (an optional

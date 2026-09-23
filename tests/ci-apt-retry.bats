@@ -36,13 +36,12 @@ assert_apt_install_is_retried() {
   local job="$1" block
   block="$(job_block "$job")"
 
-  # Skip the inert placeholder job that only echoes a stub message. Placeholder
-  # stubs ship green-until-customized; compliance checks apply once a real stack's
-  # checks are added. Detect by the exact placeholder structure.
-  if printf '%s\n' "$block" | grep -q "name: Placeholder" && \
-     printf '%s\n' "$block" | grep -qE 'run:[[:space:]]+echo'; then
-    return 0
-  fi
+  # Skip jobs with no apt install commands — compliance checks apply only to jobs
+  # that install packages. This includes the placeholder job (which has no apt).
+  local update_line install_line
+  update_line="$(first_line "$block" 'apt(-get)?([[:space:]]+-[a-zA-Z0-9-]+)*[[:space:]]+update')"
+  install_line="$(first_line "$block" 'apt(-get)?([[:space:]]+-[a-zA-Z0-9-]+)*[[:space:]]+install')"
+  [ -n "$update_line" ] || [ -n "$install_line" ] || return 0
 
   # Locate the retry-loop opener as a whole word so that one-liner loops
   # (e.g. `for i in {1..5}; do ... || sleep 5; done`) are also matched.

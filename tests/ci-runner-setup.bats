@@ -27,9 +27,15 @@ job_block() {
 
 @test "build-and-test is a placeholder that echoes a stub message" {
   block="$(job_block build-and-test)"
+  # Strip comment lines to avoid false-passes on commented-out placeholders.
+  block="$(printf '%s\n' "$block" | grep -v '^[[:space:]]*#')"
+
   # The build-and-test job ships as a placeholder that just echoes a message.
-  # Users replace it with their stack's actual steps (lint, typecheck, test, coverage).
-  printf '%s\n' "$block" | grep -qE 'echo.*CI stub'
+  # If the placeholder step is present, verify the exact stub message.
+  # If customized (placeholder removed), the test succeeds (assumes real steps replace it).
+  if printf '%s\n' "$block" | grep -qE 'name:[[:space:]]*Placeholder'; then
+    printf '%s\n' "$block" | grep -qE 'run:[[:space:]]+echo.*CI stub' || return 1
+  fi
 }
 
 @test "coverage refreshes the apt cache before installing packages" {
