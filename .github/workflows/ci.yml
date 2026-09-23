@@ -18,8 +18,8 @@
 # CONVENTIONS (enforced by the standard):
 #   • permissions: {} at top, least-privilege per job (CI needs contents: read)
 #   • triggers: push + pull_request to main
-#   • concurrency keyed by ref so cancel-in-progress can cancel earlier runs for
-#     the same branch/tag; each new push to the same ref cancels the prior run.
+#   • concurrency keyed by ref+sha so each new push cancels the stale run
+#     for the same commit (sha-scoped key prevents re-run cancellation within same push)
 #   • SHA-pin every third-party action (never a tag/branch)
 # ─────────────────────────────────────────────────────────────────────────────
 name: CI
