@@ -35,7 +35,7 @@ job_block() {
   # verify it has the exact stub message. If customized with real steps, pass.
   if printf '%s\n' "$block" | grep -qE 'run:[[:space:]]+echo.*CI stub'; then
     # Stub message found; this is a placeholder. Verify it contains only inert steps.
-    ! printf '%s\n' "$block" | grep -qE 'apt(-get)?[[:space:]]+(install|update)' || return 1
+    ! printf '%s\n' "$block" | grep -qE 'apt(-get)?([[:space:]]+-[a-zA-Z0-9-]+)*[[:space:]]+(install|update)' || return 1
   fi
 }
 
