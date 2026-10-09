@@ -26,10 +26,6 @@ are not required to start.)
 If you enable the `sonarcloud` workflow, set `sonar.projectKey` /
 `sonar.organization` in `sonar-project.properties` to match your repo.
 
-## 4. Contributing & Commercial Support
-
-All repositories in `petry-projects` automatically inherit the organization's canonical `CONTRIBUTING.md` from `petry-projects/.github` (do not add a bespoke `CONTRIBUTING.md` unless repo-specific overrides are strictly necessary). Ensure your repository's `README.md` includes the org-standard **Commercial Support & Integration** section referencing [CombSmith LLC](https://combsmith.com) per `standards/commercial-support-standard.md`.
-
 ---
 
 ## What this template does NOT do
